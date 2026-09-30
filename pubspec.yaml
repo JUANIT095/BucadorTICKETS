@@ -1,5 +1,5 @@
 name: buscador_tickets
-description: "A new Flutter project."
+description: "Buscador portable de tickets para Windows: localiza carpetas de tickets en la estructura METADA."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -31,9 +31,10 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
+  # Selector nativo de carpeta raíz (oficial del equipo Flutter).
+  file_selector: ^1.1.0
+  # Unión y manejo de rutas, incluidas UNC/red (oficial de Dart).
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:

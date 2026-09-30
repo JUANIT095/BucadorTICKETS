@@ -6,7 +6,7 @@ Leyenda: `[x]` completada · `[ ]` pendiente
 |---|------|--------|-------|-------|
 | 1 | Análisis del contexto | [x] | 2026-09-30 | Casos límite en `ARQUITECTURA.md` §9. |
 | 2 | Arquitectura | [x] | 2026-09-30 | Aprobada y guardada en `docs/ARQUITECTURA.md`. |
-| 3 | Configuración Flutter Windows | [ ] | | Incluye: `BINARY_NAME` → `BuscadorTickets`, quitar `cupertino_icons`, agregar `path` (y `file_selector`). |
+| 3 | Configuración Flutter Windows | [x] | 2026-09-30 | `BINARY_NAME` = `BuscadorTickets`; título "Buscador de Tickets"; ventana 1100×750, mínimo 800×600 (`WM_GETMINMAXINFO`, escalado por DPI); metadatos del .exe en `Runner.rc`; `pubspec`: sin `cupertino_icons`, con `file_selector` ^1.1.0 y `path` ^1.9.1; estructura de `lib/` con archivos stub; prueba de arranque. |
 | 4 | Interfaz | [ ] | | |
 | 5 | Selección de carpeta raíz | [ ] | | |
 | 6 | Detección de años | [ ] | | Crear aquí el modelo `Ticket` mínimo si hace falta. |
@@ -24,6 +24,11 @@ Leyenda: `[x]` completada · `[ ]` pendiente
 | 18 | Build Release | [ ] | | Copiar runtime VC++ junto al .exe. |
 | 19 | Prueba de portabilidad | [ ] | | |
 | 20 | Preparación de distribución | [ ] | | |
+
+## Notas técnicas
+
+- Tras renombrar `BINARY_NAME` hubo que ejecutar `flutter clean`: la caché de CMake en `build/`
+  seguía apuntando al target `buscador_tickets`. Si otro equipo tiene un `build/` antiguo, hacer lo mismo.
 
 ## Pendientes abiertos
 
