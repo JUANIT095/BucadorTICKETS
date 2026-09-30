@@ -27,6 +27,9 @@ class PanelFiltros extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         DropdownMenu<int>(
+          // Se recrea cuando cambian los años o la selección, para que el
+          // texto mostrado siga siempre al filtro (p. ej. vuelta a "Todos").
+          key: ValueKey('${anios.join(',')}|${filtros.anio}'),
           width: 124,
           label: const Text(Textos.filtroAnio),
           initialSelection: filtros.anio ?? _todos,

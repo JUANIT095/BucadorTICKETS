@@ -107,6 +107,24 @@ abstract final class Textos {
   static const avisoConfigNoGuardada =
       'No se pudo guardar la configuración de la carpeta raíz.';
 
+  // Detección de años
+  static const sinAnios =
+      'La carpeta raíz no tiene carpetas de año válidas '
+      '(por ejemplo «METADA 2024»).';
+  static String avisoAnioDuplicado(int anio, List<String> carpetas) =>
+      'El año $anio aparece en varias carpetas '
+      '(${carpetas.map((c) => '«$c»').join(', ')}); se usarán todas.';
+  static String carpetaIgnorada(String nombre, bool fueraDeRango) =>
+      '«$nombre» (${fueraDeRango ? 'año fuera de rango' : 'nombre no reconocido'})';
+  static String avisoCarpetasIgnoradas(List<String> descripciones) =>
+      'Se ignoraron carpetas con nombre parecido a METADA: '
+      '${descripciones.join(', ')}.';
+  static String avisoErroresLectura(int n) => n == 1
+      ? 'Una carpeta de la raíz no se pudo leer.'
+      : '$n carpetas de la raíz no se pudieron leer.';
+  static String avisoDeteccionFallida(String motivo) =>
+      'No se pudieron detectar los años. $motivo';
+
   // Pie
   static const indiceNoGenerado = 'Índice aún no generado';
   static String indiceActualizado(DateTime fecha) =>

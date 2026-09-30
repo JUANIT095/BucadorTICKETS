@@ -8,6 +8,10 @@ abstract final class AppConstants {
     caseSensitive: false,
   );
 
+  /// Años aceptados en carpetas METADA (sin fijar 2024–2026).
+  static const anioMinimo = 2000;
+  static const anioMaximo = 2100;
+
   // Almacenamiento portable
   static const carpetaDatos = 'data_usuario';
   static const carpetaRespaldo = 'BuscadorTickets';

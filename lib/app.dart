@@ -24,8 +24,28 @@ class _BuscadorTicketsAppState extends State<BuscadorTicketsApp> {
     tickets: DatosDemo.tickets,
   );
 
+  /// Última raíz para la que se lanzó la detección de años.
+  String? _raizDetectada;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.raiz.addListener(_alCambiarRaiz);
+    _alCambiarRaiz();
+  }
+
+  /// Cada vez que cambia la raíz activa (al arrancar o al elegir otra), se
+  /// vuelven a detectar los años.
+  void _alCambiarRaiz() {
+    final ruta = widget.raiz.rutaActiva;
+    if (ruta == _raizDetectada) return;
+    _raizDetectada = ruta;
+    _controller.detectarAnios(ruta);
+  }
+
   @override
   void dispose() {
+    widget.raiz.removeListener(_alCambiarRaiz);
     _controller.dispose();
     super.dispose();
   }

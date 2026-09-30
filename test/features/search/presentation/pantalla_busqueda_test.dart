@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:buscador_tickets/core/constants/textos.dart';
 import 'package:buscador_tickets/core/theme/app_theme.dart';
+import 'package:buscador_tickets/features/search/domain/filtros_busqueda.dart';
 import 'package:buscador_tickets/features/search/presentation/buscador_controller.dart';
 import 'package:buscador_tickets/features/search/presentation/datos_demo.dart';
 import 'package:buscador_tickets/features/search/presentation/pantalla_busqueda.dart';
@@ -145,6 +148,70 @@ void main() {
       findsOneWidget,
     );
     expect(find.text(Textos.ticketsIndexados(5)), findsOneWidget);
+  });
+
+  group('Filtro Año', () {
+    // El fondo animado es infinito: se usan esperas fijas, no pumpAndSettle.
+    Future<void> abrirFiltroAnio(WidgetTester tester) async {
+      await tester.tap(find.byType(DropdownMenu<int>).first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    /// Texto que muestra el campo del filtro Año.
+    String textoFiltroAnio(WidgetTester tester) => tester
+        .widget<EditableText>(
+          find.descendant(
+            of: find.byType(DropdownMenu<int>).first,
+            matching: find.byType(EditableText),
+          ),
+        )
+        .controller
+        .text;
+
+    testWidgets('muestra "Todos" y los años detectados', (tester) async {
+      entorno.raiz('DISCO', metada: ['METADA 2025', 'METADA 2027']);
+      await montar(tester);
+      await tester.runAsync(() => controller.detectarAnios(rutaRaiz));
+      await tester.pump();
+
+      expect(controller.anios, [2027, 2025, 2024]);
+      await abrirFiltroAnio(tester);
+      // El menú también construye una copia oculta de las opciones para
+      // medir su ancho, por eso cada opción puede aparecer más de una vez.
+      for (final opcion in [Textos.todos, '2027', '2025', '2024']) {
+        expect(find.widgetWithText(MenuItemButton, opcion), findsWidgets);
+      }
+      expect(find.widgetWithText(MenuItemButton, '2026'), findsNothing);
+    });
+
+    testWidgets('vuelve a "Todos" si el año elegido desaparece', (
+      tester,
+    ) async {
+      entorno.raiz('DISCO', metada: ['METADA 2025']);
+      await montar(tester);
+      await tester.runAsync(() => controller.detectarAnios(rutaRaiz));
+      controller.cambiarFiltros(const FiltrosBusqueda(anio: 2025));
+      await tester.pump();
+      expect(textoFiltroAnio(tester), '2025');
+
+      Directory('$rutaRaiz\\METADA 2025').deleteSync();
+      await tester.runAsync(() => controller.detectarAnios(rutaRaiz));
+      await tester.pump();
+
+      expect(controller.filtros.anio, isNull);
+      expect(controller.anios, [2024]);
+      expect(textoFiltroAnio(tester), Textos.todos);
+    });
+
+    testWidgets('raíz sin años válidos ⇒ aviso claro', (tester) async {
+      await montar(tester);
+      Directory('$rutaRaiz\\METADA 2024').renameSync('$rutaRaiz\\METADA 1999');
+      await tester.runAsync(() => controller.detectarAnios(rutaRaiz));
+      await tester.pump();
+
+      expect(find.text(Textos.sinAnios), findsOneWidget);
+    });
   });
 
   group('Carpeta raíz', () {

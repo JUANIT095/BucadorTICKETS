@@ -19,7 +19,17 @@ void main() {
     addTearDown(raiz.dispose);
 
     await tester.pumpWidget(BuscadorTicketsApp(raiz: raiz));
-    await tester.pump();
+    // La detección de años al arrancar hace E/S real: se le da tiempo real.
+    for (
+      var i = 0;
+      i < 20 && find.text(Textos.estadoInicial).evaluate().isEmpty;
+      i++
+    ) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump(const Duration(milliseconds: 400));
+    }
 
     expect(find.text(Textos.tituloPantalla), findsOneWidget);
     expect(find.text(Textos.pistaBusqueda), findsOneWidget);

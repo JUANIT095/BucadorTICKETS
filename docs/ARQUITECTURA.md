@@ -43,10 +43,12 @@ lib/
 ├── models/
 │   ├── ticket.dart                  Modelo Ticket (+ toJson/fromJson)
 │   ├── indice.dart                  Metadatos del índice + lista de tickets
-│   └── configuracion.dart           Carpeta raíz elegida
+│   ├── configuracion.dart           Carpeta raíz elegida
+│   └── carpeta_anio.dart            Carpeta de año: año, nombre y ruta (Fase 6)
 ├── features/search/
 │   ├── data/
 │   │   ├── servicio_raiz.dart       Validación y resolución de la carpeta raíz (Fase 5)
+│   │   ├── detector_anios.dart      Carpetas de año en el primer nivel de la raíz (Fase 6)
 │   │   ├── parser_carpetas.dart     Reconoce carpetas de año, mes y ticket (funciones puras)
 │   │   ├── escaner_directorios.dart Recorrido del disco (función ejecutada en Isolate)
 │   │   └── repositorio_indice.dart  Cargar/guardar/regenerar el índice
@@ -264,7 +266,9 @@ cambiar a `BuscadorTickets`.
 | Solo número (`100219`) | Nombre vacío; la tarjeta muestra el nombre de carpeta. |
 | Número duplicado en otro mes/año | Se muestran todos; clave = ruta. |
 | Ceros a la izquierda (`000123`) | Número como texto; `123` lo encuentra por coincidencia parcial. |
-| Variantes de año (`Metada 2024`, `METADA_2024`, `METADA2024`) | Regex `metada` + separadores opcionales + 4 dígitos, sin distinguir mayúsculas. Años detectados dinámicamente (2027+ aparece solo en el filtro). |
+| Variantes de año (`Metada 2024`, `METADA_2024`, `METADA-2024`, `METADA2024`) | Aceptadas: `metada` + espacios, `_` o `-` opcionales + 4 dígitos, sin distinguir mayúsculas. Años aceptados 2000–2100, detectados dinámicamente (2027+ aparece solo en el filtro). |
+| `METADATA 2024`, `METADA 2024 (copia)` u otro nombre que contiene "metada" sin cumplir el patrón | Se ignora pero **se registra** y se avisa al usuario ("nombre no reconocido"). Un año fuera de 2000–2100 se registra como "año fuera de rango". Las carpetas que no se parecen a METADA no se registran. |
+| Dos carpetas del mismo año (`METADA 2024` y `metada_2024`) | Se conservan **todas** (no se pierde ningún ticket) y se avisa del duplicado. El filtro muestra el año una sola vez. |
 | Usuario elige `METADA 2024` como raíz | Se **propone** su carpeta padre y se espera confirmación (no se cambia sola). Si no hay METADA: mensaje "Esta carpeta no contiene carpetas METADA". |
 | Se elige una carpeta inválida teniendo ya una raíz activa | Se mantiene la raíz actual y el motivo se muestra como aviso. |
 | La ruta guardada es válida en varias unidades | No se elige automáticamente; se pide al usuario que elija. |
@@ -295,3 +299,4 @@ cambiar a `BuscadorTickets`.
 | 2026-09-30 | 4→5 | Disco externo USB con la app dentro: raíz relativa al .exe, detección automática de unidades y botón de primer uso (§7). `config.json` agrega `raizRelativaExe`. |
 | 2026-09-30 | 4 | Tema único negro/blanco/rojo con vidrio difuminado y animaciones; nuevos `widgets/fondo_animado.dart` y `widgets/panel_vidrio.dart`. |
 | 2026-09-30 | 5 | Detección por cambio de letra de la ruta guardada (C:–Z:), ambigüedad → elige el usuario; propuesta del padre con confirmación; regla de escritura precisada; `RaizController` separado, `servicio_raiz.dart` y `vista_raiz.dart`. La configuración la manejan `AlmacenamientoPortable` + `Configuracion` (`repositorio_indice.dart` queda para el índice). |
+| 2026-09-30 | 6 | `DetectorAnios` + `CarpetaAnio`; reglas de variantes, duplicados y carpetas ignoradas (§9). Los años los guarda `BuscadorController` y la detección se lanza desde `app.dart` al cambiar la raíz activa. |
