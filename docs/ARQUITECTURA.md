@@ -178,6 +178,32 @@ asíncrono de la carpeta del ticket (entradas directas), cacheado en memoria dur
    permanente**.
 4. Si el respaldo también falla → modo solo memoria, avisando que el índice no se guardará.
 
+**Escenario real (confirmado):** las carpetas METADA están en un **disco externo USB** y la app
+se distribuye **dentro de ese mismo disco**. La raíz suele ser la unidad completa (p. ej. `E:\`)
+y la letra puede cambiar según el PC o el puerto. Por eso `data_usuario\` (config + índice) viaja
+con el disco.
+
+**Resolución de la carpeta raíz al arrancar** (Fase 5), en este orden:
+1. **Relativa al .exe:** si la raíz está en la misma unidad que el .exe, `config.json` guarda
+   también `raizRelativaExe` (p. ej. `..` o `..\..`). Si esa ruta existe, se usa; funciona con
+   cualquier letra de unidad.
+2. **Absoluta:** `raiz` guardada en `config.json`, si existe.
+3. **Detección automática:** si ninguna existe, se revisan las unidades `D:\`…`Z:\` (solo primer
+   nivel) buscando carpetas METADA. Exactamente una unidad → se usa y se avisa ("Se detectó el
+   disco en F:\"). Varias o ninguna → se pide elegir con "Cambiar carpeta".
+4. Si no hay raíz resuelta pero sí índice guardado → búsqueda con el último índice + aviso de raíz
+   no disponible.
+
+**Primer uso:** sin raíz configurada, el estado inicial muestra un botón "Seleccionar disco o
+carpeta" con una indicación para elegir la unidad del disco externo que contiene las carpetas
+METADA. El selector permite elegir una unidad completa.
+
+`config.json` pasa a ser:
+```json
+{ "version": 1, "raiz": "E:\\", "raizRelativaExe": ".." }
+```
+(`raizRelativaExe` se omite si la raíz está en otra unidad que el .exe.)
+
 **Distribución** (`build\windows\x64\runner\Release\`, se entrega completa):
 - `BuscadorTickets.exe`
 - `flutter_windows.dll`
@@ -232,7 +258,8 @@ cambiar a `BuscadorTickets`.
 | Disco/red desconectado al abrir | Se usa el índice guardado con aviso "La carpeta raíz no está disponible; resultados del último índice". Abrir muestra error claro. |
 | Carpeta sin permisos | Se omite, se cuenta y se informa "N carpetas no se pudieron leer". |
 | Ticket borrado/renombrado tras indexar | Verificar existencia antes de abrir: "Este ticket ya no está en esa ubicación. Pulsa Actualizar índice." |
-| Cambio de letra de unidad | Rutas relativas a la raíz en el índice. |
+| Cambio de letra de unidad | Rutas relativas a la raíz en el índice + resolución de la raíz relativa al .exe y detección automática de unidades (§7). |
+| Raíz = unidad completa (`E:\`) | Válido; `System Volume Information` y `$RECYCLE.BIN` se ignoran. |
 | Índice corrupto o de otra raíz | Se descarta, se reindexa y se avisa. |
 | Rutas > 260 caracteres o con comas | Riesgo en `explorer.exe`; se prueba explícitamente en la Fase 13. |
 | Consultas muy cortas (`1`, `a`) | Límite de 200 resultados + aviso "mostrando 200 de N". |
@@ -244,3 +271,4 @@ cambiar a `BuscadorTickets`.
 | Fecha | Fase | Cambio |
 |---|---|---|
 | 2026-09-30 | 2 | Versión inicial aprobada. |
+| 2026-09-30 | 4→5 | Disco externo USB con la app dentro: raíz relativa al .exe, detección automática de unidades y botón de primer uso (§7). `config.json` agrega `raizRelativaExe`. |
