@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/textos.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../../models/ticket.dart';
 
 /// Tarjeta de resultado con acciones Abrir carpeta y Copiar ruta.
-class TarjetaTicket extends StatelessWidget {
+///
+/// Semitransparente sin desenfoque real (ver PanelVidrio); al pasar el mouse
+/// el borde se vuelve rojo, brilla y se eleva un poco.
+class TarjetaTicket extends StatefulWidget {
   const TarjetaTicket({
     super.key,
     required this.ticket,
@@ -26,13 +30,41 @@ class TarjetaTicket extends StatelessWidget {
   final VoidCallback onCopiar;
 
   @override
+  State<TarjetaTicket> createState() => _TarjetaTicketState();
+}
+
+class _TarjetaTicketState extends State<TarjetaTicket> {
+  var _encima = false;
+
+  @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
-    final colores = tema.colorScheme;
+    final ticket = widget.ticket;
+    final elementos = widget.elementos;
 
-    return Card(
-      child: Padding(
+    return MouseRegion(
+      onEnter: (_) => setState(() => _encima = true),
+      onExit: (_) => setState(() => _encima = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        transform: Matrix4.translationValues(0, _encima ? -2 : 0, 0),
         padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _encima ? AppTheme.vidrioResaltado : AppTheme.vidrio,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _encima
+                ? AppTheme.rojo.withValues(alpha: 0.8)
+                : AppTheme.bordeVidrio,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.rojo.withValues(alpha: _encima ? 0.22 : 0),
+              blurRadius: 24,
+            ),
+          ],
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -43,12 +75,16 @@ class TarjetaTicket extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: colores.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [AppTheme.rojo, AppTheme.rojoProfundo],
+                    ),
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.folder_rounded,
-                    color: colores.onPrimaryContainer,
+                    color: AppTheme.blanco,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -85,12 +121,12 @@ class TarjetaTicket extends StatelessWidget {
                             etiqueta: Textos.etiquetaElementos,
                             valor: elementos == null
                                 ? Textos.calculando
-                                : Textos.elementos(elementos!),
+                                : Textos.elementos(elementos),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      _Ubicacion(ruta: ruta),
+                      _Ubicacion(ruta: widget.ruta),
                     ],
                   ),
                 ),
@@ -102,13 +138,13 @@ class TarjetaTicket extends StatelessWidget {
               spacing: 12,
               runSpacing: 8,
               children: [
-                FilledButton.tonalIcon(
-                  onPressed: onAbrir,
+                FilledButton.icon(
+                  onPressed: widget.onAbrir,
                   icon: const Icon(Icons.folder_open_rounded),
                   label: const Text(Textos.abrirCarpeta),
                 ),
                 OutlinedButton.icon(
-                  onPressed: onCopiar,
+                  onPressed: widget.onCopiar,
                   icon: const Icon(Icons.copy_rounded),
                   label: const Text(Textos.copiarRuta),
                 ),

@@ -115,10 +115,14 @@ class SelectorEstadoDemo extends StatelessWidget {
           child: const Text('Mostrar / ocultar aviso'),
         ),
       ],
-      builder: (context, menu, _) => FloatingActionButton.small(
-        tooltip: 'Estados de demostración (solo debug)',
-        onPressed: () => menu.isOpen ? menu.close() : menu.open(),
-        child: const Icon(Icons.bug_report_outlined),
+      // Separado del borde inferior para no tapar el pie.
+      builder: (context, menu, _) => Padding(
+        padding: const EdgeInsets.only(bottom: 36),
+        child: FloatingActionButton.small(
+          tooltip: 'Estados de demostración (solo debug)',
+          onPressed: () => menu.isOpen ? menu.close() : menu.open(),
+          child: const Icon(Icons.bug_report_outlined),
+        ),
       ),
     );
   }

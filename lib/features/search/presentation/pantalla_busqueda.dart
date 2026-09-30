@@ -8,6 +8,8 @@ import '../../../core/constants/textos.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/ticket.dart';
 import '../../../widgets/banner_aviso.dart';
+import '../../../widgets/fondo_animado.dart';
+import '../../../widgets/panel_vidrio.dart';
 import 'buscador_controller.dart';
 import 'datos_demo.dart';
 import 'widgets/barra_busqueda.dart';
@@ -30,52 +32,43 @@ class PantallaBusqueda extends StatelessWidget {
         floatingActionButton: kDebugMode
             ? SelectorEstadoDemo(controller: controller)
             : null,
-        body: Column(
-          children: [
-            _Encabezado(raiz: controller.raiz),
-            _Centrado(
-              padding: const EdgeInsets.only(top: 24),
-              child: Column(
-                children: [
-                  BarraBusqueda(
-                    onBuscar: controller.buscar,
-                    filtros: PanelFiltros(
-                      anios: controller.anios,
-                      filtros: controller.filtros,
-                      onCambio: controller.cambiarFiltros,
+        body: FondoAnimado(
+          child: Column(
+            children: [
+              _Encabezado(raiz: controller.raiz),
+              _Centrado(
+                padding: const EdgeInsets.only(top: 24),
+                child: Column(
+                  children: [
+                    PanelVidrio(
+                      padding: const EdgeInsets.all(12),
+                      child: BarraBusqueda(
+                        onBuscar: controller.buscar,
+                        filtros: PanelFiltros(
+                          anios: controller.anios,
+                          filtros: controller.filtros,
+                          onCambio: controller.cambiarFiltros,
+                        ),
+                      ),
                     ),
-                  ),
-                  for (final aviso in controller.avisos) ...[
-                    const SizedBox(height: 12),
-                    BannerAviso(
-                      mensaje: aviso,
-                      onCerrar: () => controller.descartarAviso(aviso),
-                    ),
+                    for (final aviso in controller.avisos) ...[
+                      const SizedBox(height: 12),
+                      BannerAviso(
+                        mensaje: aviso,
+                        onCerrar: () => controller.descartarAviso(aviso),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: switch (controller.estado) {
-                EstadoInicial() => const VistaEstado.inicial(),
-                EstadoBuscando() => const VistaEstado.buscando(),
-                EstadoIndexando() => const VistaEstado.indexando(),
-                EstadoSinResultados() => const VistaEstado.sinResultados(),
-                EstadoError(:final mensaje) => VistaEstado.error(
-                  mensaje: mensaje,
-                ),
-                EstadoConResultados(:final tickets) => _ListaResultados(
-                  tickets: tickets,
-                  raiz: controller.raiz,
-                ),
-              },
-            ),
-            _Pie(
-              fechaIndice: controller.fechaIndice,
-              totalTickets: controller.totalTickets,
-            ),
-          ],
+              const SizedBox(height: 16),
+              Expanded(child: _ContenidoAnimado(controller: controller)),
+              _Pie(
+                fechaIndice: controller.fechaIndice,
+                totalTickets: controller.totalTickets,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -117,8 +110,9 @@ class _Encabezado extends StatelessWidget {
     final colores = tema.colorScheme;
     final textoRaiz = raiz ?? Textos.sinCarpeta;
 
-    return Material(
-      color: colores.surface,
+    return PanelVidrio(
+      radio: 0,
+      borde: const Border(bottom: BorderSide(color: AppTheme.bordeVidrio)),
       child: Column(
         children: [
           Padding(
@@ -133,7 +127,6 @@ class _Encabezado extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: tema.textTheme.titleMedium?.copyWith(
-                      color: colores.primary,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
                     ),
@@ -182,8 +175,54 @@ class _Encabezado extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(),
         ],
+      ),
+    );
+  }
+}
+
+/// Cambia entre estados con un fundido y un leve deslizamiento hacia arriba.
+class _ContenidoAnimado extends StatelessWidget {
+  const _ContenidoAnimado({required this.controller});
+
+  final BuscadorController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final estado = controller.estado;
+    final Widget contenido = switch (estado) {
+      EstadoInicial() => const VistaEstado.inicial(),
+      EstadoBuscando() => const VistaEstado.buscando(),
+      EstadoIndexando() => const VistaEstado.indexando(),
+      EstadoSinResultados() => const VistaEstado.sinResultados(),
+      EstadoError(:final mensaje) => VistaEstado.error(mensaje: mensaje),
+      EstadoConResultados(:final tickets) => _ListaResultados(
+        tickets: tickets,
+        raiz: controller.raiz,
+      ),
+    };
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 320),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (actual, anteriores) =>
+          Stack(fit: StackFit.expand, children: [...anteriores, ?actual]),
+      transitionBuilder: (hijo, animacion) => FadeTransition(
+        opacity: animacion,
+        child: SlideTransition(
+          position: Tween(
+            begin: const Offset(0, 0.03),
+            end: Offset.zero,
+          ).animate(animacion),
+          child: hijo,
+        ),
+      ),
+      child: KeyedSubtree(
+        key: estado is EstadoConResultados
+            ? ObjectKey(estado.tickets)
+            : ValueKey(estado.runtimeType),
+        child: contenido,
       ),
     );
   }
@@ -224,18 +263,55 @@ class _ListaResultados extends StatelessWidget {
               );
             }
             final ticket = tickets[i - 1];
-            return TarjetaTicket(
-              ticket: ticket,
-              ruta: p.join(raiz ?? '', ticket.rutaRelativa),
-              // TEMPORAL (Fase 12): conteo real bajo demanda.
-              elementos: DatosDemo.elementosDe(ticket),
-              // Sin lógica todavía: Fase 13 y Fase 14.
-              onAbrir: () {},
-              onCopiar: () {},
+            return _EntradaEscalonada(
+              indice: i - 1,
+              child: TarjetaTicket(
+                ticket: ticket,
+                ruta: p.join(raiz ?? '', ticket.rutaRelativa),
+                // TEMPORAL (Fase 12): conteo real bajo demanda.
+                elementos: DatosDemo.elementosDe(ticket),
+                // Sin lógica todavía: Fase 13 y Fase 14.
+                onAbrir: () {},
+                onCopiar: () {},
+              ),
             );
           },
         );
       },
+    );
+  }
+}
+
+/// Aparición escalonada desde abajo; solo las primeras tarjetas se animan
+/// para no retrasar listas largas.
+class _EntradaEscalonada extends StatelessWidget {
+  const _EntradaEscalonada({required this.indice, required this.child});
+
+  static const _maxAnimadas = 10;
+  static const _duracionMs = 300;
+  static const _retrasoMs = 50;
+
+  final int indice;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (indice >= _maxAnimadas) return child;
+
+    final retraso = indice * _retrasoMs;
+    final total = _duracionMs + retraso;
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: total),
+      curve: Interval(retraso / total, 1, curve: Curves.easeOutCubic),
+      builder: (context, valor, hijo) => Opacity(
+        opacity: valor,
+        child: Transform.translate(
+          offset: Offset(0, (1 - valor) * 16),
+          child: hijo,
+        ),
+      ),
+      child: child,
     );
   }
 }
@@ -253,11 +329,11 @@ class _Pie extends StatelessWidget {
       color: tema.colorScheme.onSurfaceVariant,
     );
 
-    return Material(
-      color: tema.colorScheme.surface,
+    return PanelVidrio(
+      radio: 0,
+      borde: const Border(top: BorderSide(color: AppTheme.bordeVidrio)),
       child: Column(
         children: [
-          const Divider(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             child: Row(

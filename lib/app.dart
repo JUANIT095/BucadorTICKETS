@@ -32,7 +32,7 @@ class _BuscadorTicketsAppState extends State<BuscadorTicketsApp> {
     return MaterialApp(
       title: Textos.tituloApp,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.claro,
+      theme: AppTheme.oscuro,
       home: PantallaBusqueda(controller: _controller),
     );
   }

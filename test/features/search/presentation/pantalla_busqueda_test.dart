@@ -30,7 +30,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.claro,
+        theme: AppTheme.oscuro,
         home: PantallaBusqueda(controller: controller),
       ),
     );
