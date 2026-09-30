@@ -8,7 +8,7 @@ Leyenda: `[x]` completada · `[ ]` pendiente
 | 2 | Arquitectura | [x] | 2026-09-30 | Aprobada y guardada en `docs/ARQUITECTURA.md`. |
 | 3 | Configuración Flutter Windows | [x] | 2026-09-30 | `BINARY_NAME` = `BuscadorTickets`; título "Buscador de Tickets"; ventana 1100×750, mínimo 800×600 (`WM_GETMINMAXINFO`, escalado por DPI); metadatos del .exe en `Runner.rc`; `pubspec`: sin `cupertino_icons`, con `file_selector` ^1.1.0 y `path` ^1.9.1; estructura de `lib/` con archivos stub; prueba de arranque. |
 | 4 | Interfaz | [x] | 2026-09-30 | Pantalla completa con datos de demostración: encabezado (raíz + botones sin lógica), búsqueda con foco inicial y Enter, filtros Año/Mes, tarjeta, 6 estados, aviso, pie. Tema claro M3 (`AppTheme`), ancho máximo 900 px. `BuscadorController` con estado `sealed`; `Ticket` mínimo; `FiltrosBusqueda`. 10 pruebas de widget a 784×560. **Ajuste visual (aprobado):** reemplaza el tema claro por un tema único negro/blanco/rojo (`AppTheme.oscuro`) con fondo animado de brillos rojos difuminados (`FondoAnimado`), paneles de vidrio esmerilado (`PanelVidrio`) en encabezado, búsqueda, pie y avisos, transición entre estados, entrada escalonada de tarjetas, hover rojo en tarjetas, brillo del campo con foco y botón BUSCAR con degradado. Las tarjetas no usan desenfoque real (rendimiento). El fondo queda fijo si Windows tiene desactivadas las animaciones. |
-| 5 | Selección de carpeta raíz | [ ] | | Incluye resolución de raíz para disco USB: relativa al .exe → absoluta → detección de unidades; botón de primer uso (`ARQUITECTURA.md` §7). |
+| 5 | Selección de carpeta raíz | [x] | 2026-09-30 | Pendiente de validación del usuario. `AppConstants.patronMetada`; `AlmacenamientoPortable` (data_usuario → `%LOCALAPPDATA%` → memoria, JSON UTF-8 atómico, nunca dentro de METADA); `Configuracion` (versión 1, JSON inválido = sin configuración); `ServicioRaiz` (validación tipada con tiempo límite; resolución relativa al .exe → absoluta → cambio de letra C:–Z:, UNC solo absoluta, ambigüedad → elige el usuario); `RaizController` separado con estado `sealed`; `VistaRaiz` (primer uso, no encontrada, inválida, propuesta del padre); búsqueda y filtros deshabilitados sin raíz; "Cambiar carpeta" con `getDirectoryPath`. 46 pruebas (36 nuevas) con carpetas ficticias. |
 | 6 | Detección de años | [ ] | | Crear aquí el modelo `Ticket` mínimo si hace falta. |
 | 7 | Detección de meses | [ ] | | |
 | 8 | Detección de tickets | [ ] | | |
@@ -30,7 +30,19 @@ Leyenda: `[x]` completada · `[ ]` pendiente
 - Tras renombrar `BINARY_NAME` hubo que ejecutar `flutter clean`: la caché de CMake en `build/`
   seguía apuntando al target `buscador_tickets`. Si otro equipo tiene un `build/` antiguo, hacer lo mismo.
 
+- En `flutter run` el .exe está en `build\windows\x64\runner\Debug\`, así que la configuración de
+  desarrollo queda en `build\windows\x64\runner\Debug\data_usuario\config.json` (se borra con
+  `flutter clean`).
+- Tiempo límite de disco: si una unidad se cuelga, la app deja de esperarla (5 s al validar,
+  1,5 s por unidad), pero la operación de Windows sigue ocupando un hilo interno hasta responder.
+  La UI no se congela.
+- El pie sigue mostrando fecha y total de los datos de demostración aunque no haya raíz
+  (TEMPORAL hasta la Fase 10/12).
+
 ## Pendientes abiertos
+
+- **Validar la Fase 5 con el disco USB real:** resolución relativa al .exe (app dentro del USB),
+  cambio de letra al conectarlo en otro puerto/PC y el tiempo de detección de unidades.
 
 - **Validar el parser con datos reales.** El 2026-09-30 no se pudo listar `D:\DISCO`: en este
   equipo no existe la unidad D: (solo C: y E:, y E: está vacía). Las reglas de

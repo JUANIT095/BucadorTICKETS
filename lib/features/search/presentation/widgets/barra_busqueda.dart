@@ -5,12 +5,20 @@ import '../../../../core/theme/app_theme.dart';
 
 /// Campo de búsqueda + botón BUSCAR. Enter también busca.
 class BarraBusqueda extends StatefulWidget {
-  const BarraBusqueda({super.key, required this.onBuscar, this.filtros});
+  const BarraBusqueda({
+    super.key,
+    required this.onBuscar,
+    this.filtros,
+    this.habilitada = true,
+  });
 
   final ValueChanged<String> onBuscar;
 
   /// Se muestra entre el campo y el botón.
   final Widget? filtros;
+
+  /// Falso mientras no haya una carpeta raíz activa.
+  final bool habilitada;
 
   @override
   State<BarraBusqueda> createState() => _BarraBusquedaState();
@@ -34,7 +42,20 @@ class _BarraBusquedaState extends State<BarraBusqueda> {
     super.dispose();
   }
 
-  void _buscar() => widget.onBuscar(_texto.text);
+  @override
+  void didUpdateWidget(BarraBusqueda anterior) {
+    super.didUpdateWidget(anterior);
+    // Al habilitarse (raíz lista), el foco vuelve al campo.
+    if (!anterior.habilitada && widget.habilitada) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _foco.requestFocus();
+      });
+    }
+  }
+
+  void _buscar() {
+    if (widget.habilitada) widget.onBuscar(_texto.text);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +78,7 @@ class _BarraBusquedaState extends State<BarraBusqueda> {
               controller: _texto,
               focusNode: _foco,
               autofocus: true,
+              enabled: widget.habilitada,
               textInputAction: TextInputAction.search,
               // Vacío a propósito: evita que Enter quite el foco del campo,
               // así se pueden encadenar búsquedas.
@@ -75,7 +97,7 @@ class _BarraBusquedaState extends State<BarraBusqueda> {
           widget.filtros!,
         ],
         const SizedBox(width: 12),
-        _BotonBuscar(onPressed: _buscar),
+        _BotonBuscar(onPressed: widget.habilitada ? _buscar : null),
       ],
     );
   }
@@ -85,7 +107,8 @@ class _BarraBusquedaState extends State<BarraBusqueda> {
 class _BotonBuscar extends StatefulWidget {
   const _BotonBuscar({required this.onPressed});
 
-  final VoidCallback onPressed;
+  /// Null = deshabilitado.
+  final VoidCallback? onPressed;
 
   @override
   State<_BotonBuscar> createState() => _BotonBuscarState();
@@ -97,44 +120,50 @@ class _BotonBuscarState extends State<_BotonBuscar> {
   @override
   Widget build(BuildContext context) {
     final radio = BorderRadius.circular(12);
+    final habilitado = widget.onPressed != null;
+    final encima = _encima && habilitado;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _encima = true),
       onExit: (_) => setState(() => _encima = false),
-      child: AnimatedContainer(
+      child: AnimatedOpacity(
         duration: const Duration(milliseconds: 200),
-        height: 56,
-        decoration: BoxDecoration(
-          borderRadius: radio,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: _encima
-                ? const [AppTheme.rojoHover, AppTheme.rojo]
-                : const [AppTheme.rojo, AppTheme.rojoProfundo],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.rojo.withValues(alpha: _encima ? 0.45 : 0.2),
-              blurRadius: _encima ? 22 : 12,
-            ),
-          ],
-        ),
-        child: Material(
-          type: MaterialType.transparency,
-          child: InkWell(
-            onTap: widget.onPressed,
+        opacity: habilitado ? 1 : 0.4,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          height: 56,
+          decoration: BoxDecoration(
             borderRadius: radio,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
-              child: Center(
-                widthFactor: 1,
-                child: Text(
-                  Textos.buscar,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppTheme.blanco,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: encima
+                  ? const [AppTheme.rojoHover, AppTheme.rojo]
+                  : const [AppTheme.rojo, AppTheme.rojoProfundo],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.rojo.withValues(alpha: encima ? 0.45 : 0.2),
+                blurRadius: encima ? 22 : 12,
+              ),
+            ],
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              onTap: widget.onPressed,
+              borderRadius: radio,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Center(
+                  widthFactor: 1,
+                  child: Text(
+                    Textos.buscar,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: AppTheme.blanco,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
                   ),
                 ),
               ),

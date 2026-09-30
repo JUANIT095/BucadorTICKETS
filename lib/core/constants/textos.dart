@@ -63,6 +63,50 @@ abstract final class Textos {
       'No se pudo leer el índice guardado. Pulsa «Actualizar índice» para generarlo de nuevo.';
   static const cerrarAviso = 'Cerrar aviso';
 
+  // Carpeta raíz
+  static const verificandoCarpeta = 'Verificando carpeta...';
+  static const seleccionarCarpeta = 'SELECCIONAR CARPETA';
+  static const elegirOtraCarpeta = 'ELEGIR OTRA CARPETA';
+  static const reintentar = 'REINTENTAR';
+  static const usarCarpetaPropuesta = 'USAR LA CARPETA PROPUESTA';
+  static const cancelar = 'CANCELAR';
+  static const primerUsoTitulo =
+      'Selecciona la carpeta donde están las carpetas METADA';
+  static const primerUsoDetalle =
+      'Si están en un disco externo USB, conéctalo y elige la carpeta que '
+      'contiene «METADA 2024», «METADA 2025»… (por ejemplo E:\\DISCO).';
+  static const noEncontradaTitulo = 'No se encuentra la carpeta raíz';
+  static const noEncontradaDetalle =
+      'Puede que el disco esté desconectado o haya cambiado de ubicación. '
+      'Conéctalo y pulsa Reintentar, o elige otra carpeta.';
+  static String noEncontradaVarias(List<String> rutas) =>
+      'La carpeta aparece en varias unidades (${rutas.join(', ')}). '
+      'Elige la correcta.';
+  static String ultimaUbicacion(String ruta) => 'Última ubicación: $ruta';
+  static const invalidaTitulo = 'Esta carpeta no sirve como raíz';
+  static const propuestaTitulo = 'Parece que elegiste una carpeta de año';
+  static String propuestaDetalle(String seleccionada, String padre) =>
+      'Seleccionaste «$seleccionada». La carpeta raíz probablemente es '
+      '$padre.';
+  static const motivoNoExiste =
+      'La carpeta no existe o el disco está desconectado.';
+  static const motivoSinPermisos = 'No hay permisos para leer esta carpeta.';
+  static const motivoNoResponde =
+      'La unidad no responde. Si es un disco USB o de red, revisa la conexión.';
+  static const motivoSinMetada =
+      'Esta carpeta no contiene carpetas METADA (por ejemplo «METADA 2024»).';
+  static String avisoCarpetaNoValida(String motivo) =>
+      'No se cambió la carpeta raíz. $motivo';
+  static String avisoRaizDetectada(String ruta) =>
+      'Se detectó la carpeta raíz en $ruta.';
+  static String avisoRespaldo(String carpeta) =>
+      'No se puede escribir junto al programa. La configuración se guarda en '
+      '$carpeta.';
+  static const avisoSoloMemoria =
+      'No se puede guardar la configuración: se perderá al cerrar el programa.';
+  static const avisoConfigNoGuardada =
+      'No se pudo guardar la configuración de la carpeta raíz.';
+
   // Pie
   static const indiceNoGenerado = 'Índice aún no generado';
   static String indiceActualizado(DateTime fecha) =>

@@ -46,18 +46,23 @@ lib/
 │   └── configuracion.dart           Carpeta raíz elegida
 ├── features/search/
 │   ├── data/
+│   │   ├── servicio_raiz.dart       Validación y resolución de la carpeta raíz (Fase 5)
 │   │   ├── parser_carpetas.dart     Reconoce carpetas de año, mes y ticket (funciones puras)
 │   │   ├── escaner_directorios.dart Recorrido del disco (función ejecutada en Isolate)
-│   │   └── repositorio_indice.dart  Cargar/guardar/regenerar índice y config
+│   │   └── repositorio_indice.dart  Cargar/guardar/regenerar el índice
 │   ├── domain/
 │   │   ├── filtros_busqueda.dart    Año/mes seleccionados
 │   │   └── motor_busqueda.dart      Filtrado + puntuación + orden
 │   └── presentation/
-│       ├── buscador_controller.dart ChangeNotifier con el estado de la pantalla
+│       ├── buscador_controller.dart ChangeNotifier con el estado de la búsqueda
+│       ├── raiz_controller.dart     ChangeNotifier con el estado de la carpeta raíz (Fase 5)
 │       ├── pantalla_busqueda.dart   Pantalla principal
-│       └── widgets/                 barra_busqueda, panel_filtros, tarjeta_ticket, vista_estado
+│       └── widgets/                 barra_busqueda, panel_filtros, tarjeta_ticket, vista_estado,
+│                                    vista_raiz
 └── widgets/
-    └── banner_aviso.dart            Aviso reutilizable (raíz no disponible, respaldo en uso…)
+    ├── banner_aviso.dart            Aviso reutilizable (raíz no disponible, respaldo en uso…)
+    ├── fondo_animado.dart           Fondo negro con brillos rojos animados
+    └── panel_vidrio.dart            Panel de vidrio esmerilado
 ```
 
 `test/` replica la estructura: normalizador, parser, motor de búsqueda y escáner. El escáner se
@@ -178,6 +183,12 @@ asíncrono de la carpeta del ticket (entradas directas), cacheado en memoria dur
    permanente**.
 4. Si el respaldo también falla → modo solo memoria, avisando que el índice no se guardará.
 
+**Regla de escritura (precisada en la Fase 5):** la app solo escribe en su carpeta de datos
+(`<carpeta del .exe>\data_usuario\` o el respaldo). Nunca escribe en una carpeta METADA ni
+directamente en la raíz. Si `data_usuario\` quedara dentro de una carpeta METADA, se usa el
+respaldo. Recomendación: ubicar la app fuera de la carpeta de datos (p. ej. `E:\BuscadorTickets\`
+junto a `E:\DISCO\`).
+
 **Escenario real (confirmado):** las carpetas METADA están en un **disco externo USB** y la app
 se distribuye **dentro de ese mismo disco**. La raíz suele ser la unidad completa (p. ej. `E:\`)
 y la letra puede cambiar según el PC o el puerto. Por eso `data_usuario\` (config + índice) viaja
@@ -188,19 +199,27 @@ con el disco.
    también `raizRelativaExe` (p. ej. `..` o `..\..`). Si esa ruta existe, se usa; funciona con
    cualquier letra de unidad.
 2. **Absoluta:** `raiz` guardada en `config.json`, si existe.
-3. **Detección automática:** si ninguna existe, se revisan las unidades `D:\`…`Z:\` (solo primer
-   nivel) buscando carpetas METADA. Exactamente una unidad → se usa y se avisa ("Se detectó el
-   disco en F:\"). Varias o ninguna → se pide elegir con "Cambiar carpeta".
-4. Si no hay raíz resuelta pero sí índice guardado → búsqueda con el último índice + aviso de raíz
-   no disponible.
+3. **Cambio de letra:** si ninguna existe, se prueba la ruta guardada con otra letra de unidad
+   (`E:\DISCO` → `F:\DISCO`, …), de `C:` a `Z:` (se omiten A: y B:), en paralelo y con tiempo
+   límite por unidad. Exactamente una coincidencia válida → se usa, se actualiza `config.json` y se
+   avisa ("Se detectó la carpeta en F:\DISCO"). Varias → no se elige: se pide al usuario que elija.
+   Ninguna → "raíz no encontrada". Las rutas UNC (`\\servidor\…`) solo se prueban como absolutas.
+4. Sin raíz resuelta → estado "raíz no encontrada" (REINTENTAR / ELEGIR OTRA CARPETA) y búsqueda
+   deshabilitada. En la Fase 10, si hay índice guardado, se permitirá buscar en él con aviso de
+   raíz no disponible.
 
-**Primer uso:** sin raíz configurada, el estado inicial muestra un botón "Seleccionar disco o
-carpeta" con una indicación para elegir la unidad del disco externo que contiene las carpetas
-METADA. El selector permite elegir una unidad completa.
+Toda operación de disco de la resolución y la validación es asíncrona y con tiempo límite.
+
+**Primer uso:** sin configuración, el área central muestra "Selecciona la carpeta donde están
+las carpetas METADA" y el botón SELECCIONAR CARPETA; la búsqueda queda deshabilitada. El selector
+permite elegir una unidad completa.
+
+**Estado de la raíz:** `RaizController` (separado de `BuscadorController`) con estado `sealed`:
+verificando, sin configurar, activa, no encontrada, inválida y propuesta de carpeta padre.
 
 `config.json` pasa a ser:
 ```json
-{ "version": 1, "raiz": "E:\\", "raizRelativaExe": ".." }
+{ "version": 1, "raiz": "E:\\DISCO", "raizRelativaExe": "..\\DISCO" }
 ```
 (`raizRelativaExe` se omite si la raíz está en otra unidad que el .exe.)
 
@@ -246,7 +265,9 @@ cambiar a `BuscadorTickets`.
 | Número duplicado en otro mes/año | Se muestran todos; clave = ruta. |
 | Ceros a la izquierda (`000123`) | Número como texto; `123` lo encuentra por coincidencia parcial. |
 | Variantes de año (`Metada 2024`, `METADA_2024`, `METADA2024`) | Regex `metada` + separadores opcionales + 4 dígitos, sin distinguir mayúsculas. Años detectados dinámicamente (2027+ aparece solo en el filtro). |
-| Usuario elige `METADA 2024` como raíz | Se usa su carpeta padre y se avisa. Si no hay METADA: "No se encontraron carpetas METADA en esta ubicación". |
+| Usuario elige `METADA 2024` como raíz | Se **propone** su carpeta padre y se espera confirmación (no se cambia sola). Si no hay METADA: mensaje "Esta carpeta no contiene carpetas METADA". |
+| Se elige una carpeta inválida teniendo ya una raíz activa | Se mantiene la raíz actual y el motivo se muestra como aviso. |
+| La ruta guardada es válida en varias unidades | No se elige automáticamente; se pide al usuario que elija. |
 | Variantes de mes (tildes, mayúsculas, `Setiembre`, `Ene`/`Sep`/`Set`, `05`, `5`, `05 Mayo`, `05-Mayo`, `Mayo 2024`) | Normalizar → buscar nombre/abreviatura de mes → si no, número suelto 1–12. Filtro por número de mes; tarjeta muestra nombre original. |
 | Carpeta dentro del año que no es mes | 1) ¿Mes? → mes. 2) ¿Parece ticket (≥4 dígitos + separador)? → ticket directo del año, `mes = null`. 3) Si no → "mes desconocido", se indexan sus tickets con el nombre original. Visibles con Mes = "Todos". |
 | Tildes / mayúsculas | Normalización de la sección 5 (incluye NFD). |
@@ -272,3 +293,5 @@ cambiar a `BuscadorTickets`.
 |---|---|---|
 | 2026-09-30 | 2 | Versión inicial aprobada. |
 | 2026-09-30 | 4→5 | Disco externo USB con la app dentro: raíz relativa al .exe, detección automática de unidades y botón de primer uso (§7). `config.json` agrega `raizRelativaExe`. |
+| 2026-09-30 | 4 | Tema único negro/blanco/rojo con vidrio difuminado y animaciones; nuevos `widgets/fondo_animado.dart` y `widgets/panel_vidrio.dart`. |
+| 2026-09-30 | 5 | Detección por cambio de letra de la ruta guardada (C:–Z:), ambigüedad → elige el usuario; propuesta del padre con confirmación; regla de escritura precisada; `RaizController` separado, `servicio_raiz.dart` y `vista_raiz.dart`. La configuración la manejan `AlmacenamientoPortable` + `Configuracion` (`repositorio_indice.dart` queda para el índice). |

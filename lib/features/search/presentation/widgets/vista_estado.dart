@@ -34,6 +34,13 @@ class VistaEstado extends StatelessWidget {
       cargando = true,
       esError = false;
 
+  const VistaEstado.verificandoCarpeta({super.key})
+    : titulo = Textos.verificandoCarpeta,
+      detalle = null,
+      icono = null,
+      cargando = true,
+      esError = false;
+
   const VistaEstado.sinResultados({super.key})
     : titulo = Textos.sinResultados,
       detalle = Textos.sinResultadosDetalle,

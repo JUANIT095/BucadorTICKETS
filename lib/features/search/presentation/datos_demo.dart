@@ -12,8 +12,6 @@ import '../../../models/ticket.dart';
 import 'buscador_controller.dart';
 
 abstract final class DatosDemo {
-  static const raiz = r'D:\DISCO';
-
   static final fechaIndice = DateTime(2026, 9, 30, 10, 15);
 
   static const tickets = <Ticket>[

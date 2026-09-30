@@ -10,11 +10,13 @@ class PanelFiltros extends StatelessWidget {
     required this.anios,
     required this.filtros,
     required this.onCambio,
+    this.habilitado = true,
   });
 
   final List<int> anios;
   final FiltrosBusqueda filtros;
   final ValueChanged<FiltrosBusqueda> onCambio;
+  final bool habilitado;
 
   /// Valor de la opción "Todos" en los menús (null no es seleccionable).
   static const _todos = 0;
@@ -29,6 +31,7 @@ class PanelFiltros extends StatelessWidget {
           label: const Text(Textos.filtroAnio),
           initialSelection: filtros.anio ?? _todos,
           requestFocusOnTap: false,
+          enabled: habilitado,
           dropdownMenuEntries: [
             const DropdownMenuEntry(value: _todos, label: Textos.todos),
             for (final anio in anios)
@@ -43,6 +46,7 @@ class PanelFiltros extends StatelessWidget {
           label: const Text(Textos.filtroMes),
           initialSelection: filtros.mes ?? _todos,
           requestFocusOnTap: false,
+          enabled: habilitado,
           dropdownMenuEntries: [
             const DropdownMenuEntry(value: _todos, label: Textos.todos),
             for (var mes = 1; mes <= 12; mes++)

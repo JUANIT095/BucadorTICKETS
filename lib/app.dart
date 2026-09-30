@@ -5,9 +5,13 @@ import 'core/theme/app_theme.dart';
 import 'features/search/presentation/buscador_controller.dart';
 import 'features/search/presentation/datos_demo.dart';
 import 'features/search/presentation/pantalla_busqueda.dart';
+import 'features/search/presentation/raiz_controller.dart';
 
 class BuscadorTicketsApp extends StatefulWidget {
-  const BuscadorTicketsApp({super.key});
+  const BuscadorTicketsApp({super.key, required this.raiz});
+
+  /// Se crea en `main` con los servicios reales; las pruebas inyectan el suyo.
+  final RaizController raiz;
 
   @override
   State<BuscadorTicketsApp> createState() => _BuscadorTicketsAppState();
@@ -16,7 +20,6 @@ class BuscadorTicketsApp extends StatefulWidget {
 class _BuscadorTicketsAppState extends State<BuscadorTicketsApp> {
   // TEMPORAL (Fase 12): datos de demostración en lugar del índice real.
   final _controller = BuscadorController(
-    raiz: DatosDemo.raiz,
     fechaIndice: DatosDemo.fechaIndice,
     tickets: DatosDemo.tickets,
   );
@@ -33,7 +36,7 @@ class _BuscadorTicketsAppState extends State<BuscadorTicketsApp> {
       title: Textos.tituloApp,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.oscuro,
-      home: PantallaBusqueda(controller: _controller),
+      home: PantallaBusqueda(controller: _controller, raiz: widget.raiz),
     );
   }
 }

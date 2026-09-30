@@ -12,65 +12,95 @@ import '../../../widgets/fondo_animado.dart';
 import '../../../widgets/panel_vidrio.dart';
 import 'buscador_controller.dart';
 import 'datos_demo.dart';
+import 'raiz_controller.dart';
 import 'widgets/barra_busqueda.dart';
 import 'widgets/panel_filtros.dart';
 import 'widgets/tarjeta_ticket.dart';
 import 'widgets/vista_estado.dart';
+import 'widgets/vista_raiz.dart';
 
 /// Pantalla principal de búsqueda.
 class PantallaBusqueda extends StatelessWidget {
-  const PantallaBusqueda({super.key, required this.controller});
+  const PantallaBusqueda({
+    super.key,
+    required this.controller,
+    required this.raiz,
+  });
 
   final BuscadorController controller;
+  final RaizController raiz;
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) => Scaffold(
-        // TEMPORAL (Fase 12): selector de estados de demostración.
-        floatingActionButton: kDebugMode
-            ? SelectorEstadoDemo(controller: controller)
-            : null,
-        body: FondoAnimado(
-          child: Column(
-            children: [
-              _Encabezado(raiz: controller.raiz),
-              _Centrado(
-                padding: const EdgeInsets.only(top: 24),
-                child: Column(
-                  children: [
-                    PanelVidrio(
-                      padding: const EdgeInsets.all(12),
-                      child: BarraBusqueda(
-                        onBuscar: controller.buscar,
-                        filtros: PanelFiltros(
-                          anios: controller.anios,
-                          filtros: controller.filtros,
-                          onCambio: controller.cambiarFiltros,
+      listenable: Listenable.merge([controller, raiz]),
+      builder: (context, _) {
+        final rutaRaiz = raiz.rutaActiva;
+        final hayRaiz = rutaRaiz != null;
+        return Scaffold(
+          // TEMPORAL (Fase 12): selector de estados de demostración.
+          floatingActionButton: kDebugMode && hayRaiz
+              ? SelectorEstadoDemo(controller: controller)
+              : null,
+          body: FondoAnimado(
+            child: Column(
+              children: [
+                _Encabezado(
+                  raiz: rutaRaiz,
+                  onCambiarCarpeta: raiz.ocupado ? null : raiz.elegirCarpeta,
+                ),
+                _Centrado(
+                  padding: const EdgeInsets.only(top: 24),
+                  child: Column(
+                    children: [
+                      PanelVidrio(
+                        padding: const EdgeInsets.all(12),
+                        child: BarraBusqueda(
+                          onBuscar: controller.buscar,
+                          habilitada: hayRaiz,
+                          filtros: PanelFiltros(
+                            anios: controller.anios,
+                            filtros: controller.filtros,
+                            onCambio: controller.cambiarFiltros,
+                            habilitado: hayRaiz,
+                          ),
                         ),
                       ),
-                    ),
-                    for (final aviso in controller.avisos) ...[
-                      const SizedBox(height: 12),
-                      BannerAviso(
-                        mensaje: aviso,
-                        onCerrar: () => controller.descartarAviso(aviso),
-                      ),
+                      for (final aviso in raiz.avisos)
+                        _Aviso(aviso, () => raiz.descartarAviso(aviso)),
+                      for (final aviso in controller.avisos)
+                        _Aviso(aviso, () => controller.descartarAviso(aviso)),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(child: _ContenidoAnimado(controller: controller)),
-              _Pie(
-                fechaIndice: controller.fechaIndice,
-                totalTickets: controller.totalTickets,
-              ),
-            ],
+                const SizedBox(height: 16),
+                Expanded(
+                  child: _ContenidoAnimado(controller: controller, raiz: raiz),
+                ),
+                _Pie(
+                  fechaIndice: controller.fechaIndice,
+                  totalTickets: controller.totalTickets,
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
+    );
+  }
+}
+
+class _Aviso extends StatelessWidget {
+  const _Aviso(this.mensaje, this.onCerrar);
+
+  final String mensaje;
+  final VoidCallback onCerrar;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: BannerAviso(mensaje: mensaje, onCerrar: onCerrar),
     );
   }
 }
@@ -100,9 +130,12 @@ class _Centrado extends StatelessWidget {
 }
 
 class _Encabezado extends StatelessWidget {
-  const _Encabezado({required this.raiz});
+  const _Encabezado({required this.raiz, required this.onCambiarCarpeta});
 
   final String? raiz;
+
+  /// Null mientras se verifica la carpeta.
+  final VoidCallback? onCambiarCarpeta;
 
   @override
   Widget build(BuildContext context) {
@@ -161,12 +194,12 @@ class _Encabezado extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Sin lógica todavía: Fase 5 (carpeta) y Fase 10 (índice).
                 TextButton.icon(
-                  onPressed: () {},
+                  onPressed: onCambiarCarpeta,
                   icon: const Icon(Icons.drive_folder_upload_outlined),
                   label: const Text(Textos.cambiarCarpeta),
                 ),
+                // Sin lógica todavía: Fase 10 (índice).
                 TextButton.icon(
                   onPressed: () {},
                   icon: const Icon(Icons.refresh_rounded),
@@ -183,23 +216,35 @@ class _Encabezado extends StatelessWidget {
 
 /// Cambia entre estados con un fundido y un leve deslizamiento hacia arriba.
 class _ContenidoAnimado extends StatelessWidget {
-  const _ContenidoAnimado({required this.controller});
+  const _ContenidoAnimado({required this.controller, required this.raiz});
 
   final BuscadorController controller;
+  final RaizController raiz;
 
   @override
   Widget build(BuildContext context) {
+    final estadoRaiz = raiz.estado;
     final estado = controller.estado;
-    final Widget contenido = switch (estado) {
-      EstadoInicial() => const VistaEstado.inicial(),
-      EstadoBuscando() => const VistaEstado.buscando(),
-      EstadoIndexando() => const VistaEstado.indexando(),
-      EstadoSinResultados() => const VistaEstado.sinResultados(),
-      EstadoError(:final mensaje) => VistaEstado.error(mensaje: mensaje),
-      EstadoConResultados(:final tickets) => _ListaResultados(
-        tickets: tickets,
-        raiz: controller.raiz,
+    final (Object clave, Widget contenido) = switch (estadoRaiz) {
+      RaizVerificando() => (
+        RaizVerificando,
+        const VistaEstado.verificandoCarpeta(),
       ),
+      RaizActiva(:final ruta) => (
+        estado is EstadoConResultados ? estado.tickets : estado.runtimeType,
+        switch (estado) {
+          EstadoInicial() => const VistaEstado.inicial(),
+          EstadoBuscando() => const VistaEstado.buscando(),
+          EstadoIndexando() => const VistaEstado.indexando(),
+          EstadoSinResultados() => const VistaEstado.sinResultados(),
+          EstadoError(:final mensaje) => VistaEstado.error(mensaje: mensaje),
+          EstadoConResultados(:final tickets) => _ListaResultados(
+            tickets: tickets,
+            raiz: ruta,
+          ),
+        },
+      ),
+      _ => (estadoRaiz.runtimeType, VistaRaiz(controller: raiz)),
     };
 
     return AnimatedSwitcher(
@@ -218,12 +263,7 @@ class _ContenidoAnimado extends StatelessWidget {
           child: hijo,
         ),
       ),
-      child: KeyedSubtree(
-        key: estado is EstadoConResultados
-            ? ObjectKey(estado.tickets)
-            : ValueKey(estado.runtimeType),
-        child: contenido,
-      ),
+      child: KeyedSubtree(key: ObjectKey(clave), child: contenido),
     );
   }
 }
@@ -232,7 +272,7 @@ class _ListaResultados extends StatelessWidget {
   const _ListaResultados({required this.tickets, required this.raiz});
 
   final List<Ticket> tickets;
-  final String? raiz;
+  final String raiz;
 
   @override
   Widget build(BuildContext context) {
@@ -267,7 +307,7 @@ class _ListaResultados extends StatelessWidget {
               indice: i - 1,
               child: TarjetaTicket(
                 ticket: ticket,
-                ruta: p.join(raiz ?? '', ticket.rutaRelativa),
+                ruta: p.join(raiz, ticket.rutaRelativa),
                 // TEMPORAL (Fase 12): conteo real bajo demanda.
                 elementos: DatosDemo.elementosDe(ticket),
                 // Sin lógica todavía: Fase 13 y Fase 14.

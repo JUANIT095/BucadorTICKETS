@@ -38,22 +38,16 @@ class EstadoError extends EstadoBusqueda {
 
 /// Estado de la pantalla de búsqueda.
 class BuscadorController extends ChangeNotifier {
-  BuscadorController({
-    String? raiz,
-    DateTime? fechaIndice,
-    List<Ticket> tickets = const [],
-  }) : _raiz = raiz,
-       _fechaIndice = fechaIndice,
-       _tickets = tickets;
+  BuscadorController({DateTime? fechaIndice, List<Ticket> tickets = const []})
+    : _fechaIndice = fechaIndice,
+      _tickets = tickets;
 
-  final String? _raiz;
   final DateTime? _fechaIndice;
   final List<Ticket> _tickets;
   final List<String> _avisos = [];
   EstadoBusqueda _estado = const EstadoInicial();
   FiltrosBusqueda _filtros = const FiltrosBusqueda();
 
-  String? get raiz => _raiz;
   DateTime? get fechaIndice => _fechaIndice;
   int get totalTickets => _tickets.length;
   EstadoBusqueda get estado => _estado;
