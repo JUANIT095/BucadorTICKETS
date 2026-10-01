@@ -14,7 +14,7 @@ import 'buscador_controller.dart';
 abstract final class DatosDemo {
   static final fechaIndice = DateTime(2026, 9, 30, 10, 15);
 
-  static const tickets = <Ticket>[
+  static final tickets = <Ticket>[
     Ticket(
       numero: '100219',
       nombre: 'Curación2 ABC - Proyecto IA',
@@ -96,7 +96,7 @@ class SelectorEstadoDemo extends StatelessWidget {
       'Indexando': const EstadoIndexando(),
       'Sin resultados': const EstadoSinResultados(),
       'Error': const EstadoError(Textos.errorLeerIndice),
-      'Con resultados': const EstadoConResultados(DatosDemo.tickets),
+      'Con resultados': EstadoConResultados(DatosDemo.tickets),
     };
 
     return MenuAnchor(

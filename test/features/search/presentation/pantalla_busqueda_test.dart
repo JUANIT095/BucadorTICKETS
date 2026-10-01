@@ -107,7 +107,7 @@ void main() {
     tester,
   ) async {
     await montar(tester);
-    await mostrar(tester, const EstadoConResultados(DatosDemo.tickets));
+    await mostrar(tester, EstadoConResultados(DatosDemo.tickets));
     expect(find.text(Textos.resultados(5)), findsOneWidget);
     expect(find.text('100219_Curación2 ABC - Proyecto IA'), findsOneWidget);
     expect(find.text(Textos.abrirCarpeta), findsWidgets);

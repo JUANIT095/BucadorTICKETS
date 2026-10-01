@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
 
 import '../../../core/constants/textos.dart';
 import '../../../core/theme/app_theme.dart';
@@ -307,7 +306,7 @@ class _ListaResultados extends StatelessWidget {
               indice: i - 1,
               child: TarjetaTicket(
                 ticket: ticket,
-                ruta: p.join(raiz, ticket.rutaRelativa),
+                ruta: ticket.rutaEn(raiz),
                 // TEMPORAL (Fase 12): conteo real bajo demanda.
                 elementos: DatosDemo.elementosDe(ticket),
                 // Sin lógica todavía: Fase 13 y Fase 14.
