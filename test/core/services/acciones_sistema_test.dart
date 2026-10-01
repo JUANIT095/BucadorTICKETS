@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:buscador_tickets/core/services/acciones_sistema.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
@@ -79,6 +80,26 @@ void main() {
   test('rutaAbrible no cambia rutas normales', () {
     const ruta = r'D:\2024\Mayo\100219_Curación2 ABC - Proyecto IA';
     expect(AccionesSistema.rutaAbrible(ruta), ruta);
+  });
+
+  test('copiar al portapapeles envía la ruta completa a Windows', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    Object? enviado;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (llamada) async {
+          if (llamada.method == 'Clipboard.setData') {
+            enviado = llamada.arguments;
+          }
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+
+    const ruta = r'D:\2024\Mayo\100222_Creación línea gráfica E&N';
+    expect(await copiarAlPortapapeles(ruta), isTrue);
+    expect(enviado, {'text': ruta});
   });
 
   test('argumento con espacio final para forzar comillas (comas)', () {

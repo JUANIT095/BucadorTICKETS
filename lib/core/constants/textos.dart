@@ -175,6 +175,11 @@ abstract final class Textos {
       'No se puede abrir la carpeta: el disco no está conectado o no responde.';
   static const errorAlAbrir = 'No se pudo abrir el Explorador de Windows.';
 
+  // Copiar ruta
+  static String rutaCopiada(String ruta) => 'Ruta copiada: $ruta';
+  static const errorAlCopiar =
+      'No se pudo copiar la ruta. Puedes seleccionarla en la tarjeta y copiarla.';
+
   // Pie
   static const indiceNoGenerado = 'Índice aún no generado';
   static String indiceActualizado(DateTime fecha) =>

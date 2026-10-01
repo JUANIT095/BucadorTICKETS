@@ -29,12 +29,18 @@ void main() {
   final abiertas = <String>[];
   ResultadoAbrir resultadoAbrir = const CarpetaAbierta();
 
+  /// Textos copiados al portapapeles simulado.
+  final copiadas = <String>[];
+  var copiaFunciona = true;
+
   setUp(() {
     entorno = EntornoPrueba.crear();
     rutaRaiz = entorno.raiz('DISCO');
     conteos.clear();
     abiertas.clear();
     resultadoAbrir = const CarpetaAbierta();
+    copiadas.clear();
+    copiaFunciona = true;
     controller = BuscadorController(
       fechaIndice: TicketsPrueba.fechaIndice,
       tickets: TicketsPrueba.tickets,
@@ -42,6 +48,10 @@ void main() {
       contador: (ruta) async {
         conteos.add(ruta);
         return ruta.contains("Varios") ? null : 12;
+      },
+      copiar: (texto) async {
+        copiadas.add(texto);
+        return copiaFunciona;
       },
       abrir: (ruta, {required raiz}) async {
         abiertas.add(ruta);
@@ -186,6 +196,32 @@ void main() {
         expect(find.text(mensaje), findsOneWidget);
       });
     }
+  });
+
+  group('Copiar ruta', () {
+    Future<void> pulsarCopiar(WidgetTester tester) async {
+      await mostrar(tester, EstadoConResultados([TicketsPrueba.tickets.first]));
+      await tester.tap(find.text(Textos.copiarRuta));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    testWidgets('copia la ruta completa y lo confirma', (tester) async {
+      await montar(tester);
+      await pulsarCopiar(tester);
+
+      final ruta = '$rutaRaiz\\2024\\Mayo\\100219_Curación2 ABC - Proyecto IA';
+      expect(copiadas, [ruta]);
+      expect(find.text(Textos.rutaCopiada(ruta)), findsOneWidget);
+    });
+
+    testWidgets('si no se puede copiar ⇒ mensaje claro', (tester) async {
+      copiaFunciona = false;
+      await montar(tester);
+      await pulsarCopiar(tester);
+
+      expect(find.text(Textos.errorAlCopiar), findsOneWidget);
+    });
   });
 
   group('Elementos', () {

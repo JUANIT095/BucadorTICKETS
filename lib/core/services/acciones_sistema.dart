@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
 import '../constants/app_constants.dart';
@@ -39,6 +40,7 @@ class ErrorAlAbrir extends ResultadoAbrir {
 typedef LanzarExplorador = Future<void> Function(String argumento);
 
 /// Acciones del sistema sobre un resultado. Nunca modifican archivos.
+/// (La copia al portapapeles es [copiarAlPortapapeles], al final del archivo.)
 class AccionesSistema {
   const AccionesSistema({this.lanzar = _lanzarExplorador});
 
@@ -98,3 +100,13 @@ class AccionesSistema {
 
 Future<void> _lanzarExplorador(String argumento) =>
     Process.start('explorer.exe', [argumento], mode: ProcessStartMode.detached);
+
+/// Copia [texto] al portapapeles de Windows. Devuelve false si no se pudo.
+Future<bool> copiarAlPortapapeles(String texto) async {
+  try {
+    await Clipboard.setData(ClipboardData(text: texto));
+    return true;
+  } on PlatformException {
+    return false;
+  }
+}

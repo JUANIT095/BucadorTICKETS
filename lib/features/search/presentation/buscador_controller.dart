@@ -74,13 +74,15 @@ class BuscadorController extends ChangeNotifier {
     MotorBusqueda motor = const MotorBusqueda(),
     ContadorElementos contador = contarElementos,
     AbrirCarpeta? abrir,
+    Future<bool> Function(String texto) copiar = copiarAlPortapapeles,
   }) : _fechaIndice = fechaIndice,
        _tickets = tickets,
        _repositorio = repositorio,
        _escaner = escaner,
        _motor = motor,
        _contador = contador,
-       _abrir = abrir ?? const AccionesSistema().abrirCarpeta;
+       _abrir = abrir ?? const AccionesSistema().abrirCarpeta,
+       _copiar = copiar;
 
   /// Null = sin persistencia (p. ej. en pruebas): siempre se indexa.
   final RepositorioIndice? _repositorio;
@@ -88,6 +90,7 @@ class BuscadorController extends ChangeNotifier {
   final MotorBusqueda _motor;
   final ContadorElementos _contador;
   final AbrirCarpeta _abrir;
+  final Future<bool> Function(String texto) _copiar;
 
   /// Conteos ya pedidos en esta sesión, por ruta absoluta.
   final Map<String, Future<int?>> _elementos = {};
@@ -233,6 +236,13 @@ class BuscadorController extends ChangeNotifier {
   /// "Abrir carpeta": abre el ticket en el Explorador de Windows.
   Future<ResultadoAbrir> abrirCarpeta(Ticket ticket, String raiz) =>
       _abrir(ticket.rutaEn(raiz), raiz: raiz);
+
+  /// "Copiar ruta": copia la ruta completa del ticket (con la raíz actual) al
+  /// portapapeles. Devuelve la ruta copiada, o null si no se pudo.
+  Future<String?> copiarRuta(Ticket ticket, String raiz) async {
+    final ruta = ticket.rutaEn(raiz);
+    return await _copiar(ruta) ? ruta : null;
+  }
 
   /// Elementos de la carpeta de [ticket] bajo [raiz]. Se cuenta la primera vez
   /// que se pide (al construirse la tarjeta, es decir, solo para las tarjetas

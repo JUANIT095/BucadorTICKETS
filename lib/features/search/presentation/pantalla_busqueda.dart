@@ -280,6 +280,7 @@ class _ContenidoAnimado extends StatelessWidget {
                   raiz: ruta,
                   elementosDe: controller.elementosDe,
                   abrirCarpeta: controller.abrirCarpeta,
+                  copiarRuta: controller.copiarRuta,
                 ),
             },
           )
@@ -313,6 +314,7 @@ class _ListaResultados extends StatelessWidget {
     required this.raiz,
     required this.elementosDe,
     required this.abrirCarpeta,
+    required this.copiarRuta,
   });
 
   final List<Ticket> tickets;
@@ -328,6 +330,9 @@ class _ListaResultados extends StatelessWidget {
   final Future<ResultadoAbrir> Function(Ticket ticket, String raiz)
   abrirCarpeta;
 
+  /// Devuelve la ruta copiada, o null si no se pudo.
+  final Future<String?> Function(Ticket ticket, String raiz) copiarRuta;
+
   /// Abre el ticket; si no se pudo (o se abrió otra carpeta), lo explica en
   /// un mensaje breve.
   Future<void> _abrir(BuildContext context, Ticket ticket) async {
@@ -338,7 +343,20 @@ class _ListaResultados extends StatelessWidget {
       UnidadNoDisponible() => Textos.unidadNoDisponible,
       ErrorAlAbrir() => Textos.errorAlAbrir,
     };
-    if (mensaje == null || !context.mounted) return;
+    if (mensaje != null && context.mounted) _avisar(context, mensaje);
+  }
+
+  /// Copia la ruta y lo confirma (copiar no tiene otra señal visible).
+  Future<void> _copiar(BuildContext context, Ticket ticket) async {
+    final copiada = await copiarRuta(ticket, raiz);
+    if (!context.mounted) return;
+    _avisar(
+      context,
+      copiada == null ? Textos.errorAlCopiar : Textos.rutaCopiada(copiada),
+    );
+  }
+
+  static void _avisar(BuildContext context, String mensaje) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(mensaje)));
@@ -382,8 +400,7 @@ class _ListaResultados extends StatelessWidget {
                 ruta: ticket.rutaEn(raiz),
                 elementos: elementosDe(ticket, raiz),
                 onAbrir: () => _abrir(context, ticket),
-                // Sin lógica todavía: Fase 14.
-                onCopiar: () {},
+                onCopiar: () => _copiar(context, ticket),
               ),
             );
           },
