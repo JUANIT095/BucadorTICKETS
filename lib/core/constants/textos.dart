@@ -38,6 +38,7 @@ abstract final class Textos {
   static const sinNumero = 'Sin número';
   static const sinMes = 'Sin mes';
   static const calculando = 'Calculando…';
+  static const elementosNoDisponible = 'No disponible';
   static const abrirCarpeta = 'ABRIR CARPETA';
   static const copiarRuta = 'COPIAR RUTA';
   static String elementos(int n) =>
@@ -61,10 +62,6 @@ abstract final class Textos {
       n == 1 ? '1 resultado' : '${_miles(n)} resultados';
 
   // Avisos y errores
-  static const avisoRaizNoDisponible =
-      'La carpeta raíz no está disponible. Se muestran resultados del último índice.';
-  static const errorLeerIndice =
-      'No se pudo leer el índice guardado. Pulsa «Actualizar índice» para generarlo de nuevo.';
   static const cerrarAviso = 'Cerrar aviso';
 
   // Carpeta raíz

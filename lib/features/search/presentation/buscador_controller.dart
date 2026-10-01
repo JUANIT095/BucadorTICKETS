@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import '../../../core/constants/textos.dart';
 import '../../../models/indice.dart';
 import '../../../models/ticket.dart';
+import '../data/contador_elementos.dart';
 import '../data/escaner_directorios.dart';
 import '../data/repositorio_indice.dart';
 import '../domain/filtros_busqueda.dart';
@@ -52,6 +53,9 @@ class EstadoError extends EstadoBusqueda {
 /// Genera el índice de una raíz. Por defecto, en un Isolate.
 typedef Escaner = Future<Indice> Function(String raiz);
 
+/// Cuenta los elementos de la carpeta de un ticket (ruta absoluta).
+typedef ContadorElementos = Future<int?> Function(String ruta);
+
 Future<Indice> _escanearEnIsolate(String raiz) =>
     Isolate.run(() => escanearRaiz(raiz));
 
@@ -63,16 +67,22 @@ class BuscadorController extends ChangeNotifier {
     RepositorioIndice? repositorio,
     Escaner escaner = _escanearEnIsolate,
     MotorBusqueda motor = const MotorBusqueda(),
+    ContadorElementos contador = contarElementos,
   }) : _fechaIndice = fechaIndice,
        _tickets = tickets,
        _repositorio = repositorio,
        _escaner = escaner,
-       _motor = motor;
+       _motor = motor,
+       _contador = contador;
 
   /// Null = sin persistencia (p. ej. en pruebas): siempre se indexa.
   final RepositorioIndice? _repositorio;
   final Escaner _escaner;
   final MotorBusqueda _motor;
+  final ContadorElementos _contador;
+
+  /// Conteos ya pedidos en esta sesión, por ruta absoluta.
+  final Map<String, Future<int?>> _elementos = {};
 
   DateTime? _fechaIndice;
   List<Ticket> _tickets;
@@ -196,6 +206,7 @@ class BuscadorController extends ChangeNotifier {
   /// no valen, así que la pantalla vuelve al estado inicial.
   void _aplicar(Indice? indice, {List<String> extras = const []}) {
     _tickets = indice?.tickets ?? const [];
+    _elementos.clear(); // otro índice: los conteos pueden haber cambiado
     _anios = indice?.anios ?? const [];
     _fechaIndice = indice?.generado;
     // Si el año elegido ya no existe, el filtro vuelve a "Todos".
@@ -209,6 +220,14 @@ class BuscadorController extends ChangeNotifier {
       if (!_avisos.contains(aviso)) _avisos.add(aviso);
     }
     _estado = const EstadoInicial();
+  }
+
+  /// Elementos de la carpeta de [ticket] bajo [raiz]. Se cuenta la primera vez
+  /// que se pide (al construirse la tarjeta, es decir, solo para las tarjetas
+  /// visibles) y se recuerda durante la sesión; null = no disponible.
+  Future<int?> elementosDe(Ticket ticket, String raiz) {
+    final ruta = ticket.rutaEn(raiz);
+    return _elementos[ruta] ??= _contador(ruta);
   }
 
   /// Busca en el índice cargado aplicando los filtros actuales.
@@ -229,6 +248,7 @@ class BuscadorController extends ChangeNotifier {
     notifyListeners();
   }
 
+  @visibleForTesting
   void mostrarAviso(String mensaje) {
     if (_avisos.contains(mensaje)) return;
     _avisos.add(mensaje);
@@ -239,7 +259,8 @@ class BuscadorController extends ChangeNotifier {
     if (_avisos.remove(mensaje)) notifyListeners();
   }
 
-  /// TEMPORAL (Fase 12): solo lo usa el selector de estados de demostración.
+  /// Para revisar cada estado en las pruebas de widget.
+  @visibleForTesting
   void mostrarEstado(EstadoBusqueda estado) {
     _estado = estado;
     notifyListeners();

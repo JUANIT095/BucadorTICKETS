@@ -23,8 +23,9 @@ class TarjetaTicket extends StatefulWidget {
   /// Ruta absoluta de la carpeta del ticket.
   final String ruta;
 
-  /// Entradas directas de la carpeta; null mientras se calcula.
-  final int? elementos;
+  /// Entradas directas de la carpeta (se resuelve a null si no está
+  /// disponible). Mientras se calcula, la tarjeta muestra "Calculando…".
+  final Future<int?> elementos;
 
   final VoidCallback onAbrir;
   final VoidCallback onCopiar;
@@ -40,7 +41,6 @@ class _TarjetaTicketState extends State<TarjetaTicket> {
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
     final ticket = widget.ticket;
-    final elementos = widget.elementos;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _encima = true),
@@ -119,11 +119,23 @@ class _TarjetaTicketState extends State<TarjetaTicket> {
                                 ? Textos.sinMes
                                 : ticket.carpetaMes,
                           ),
-                          _Dato(
-                            etiqueta: Textos.etiquetaElementos,
-                            valor: elementos == null
-                                ? Textos.calculando
-                                : Textos.elementos(elementos),
+                          FutureBuilder<int?>(
+                            future: widget.elementos,
+                            builder: (context, conteo) => _Dato(
+                              etiqueta: Textos.etiquetaElementos,
+                              valor: switch (conteo) {
+                                AsyncSnapshot(
+                                  connectionState: ConnectionState.done,
+                                  data: final int n,
+                                ) =>
+                                  Textos.elementos(n),
+                                AsyncSnapshot(
+                                  connectionState: ConnectionState.done,
+                                ) =>
+                                  Textos.elementosNoDisponible,
+                                _ => Textos.calculando,
+                              },
+                            ),
                           ),
                         ],
                       ),

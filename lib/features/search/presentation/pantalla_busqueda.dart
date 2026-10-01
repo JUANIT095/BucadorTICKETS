@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/textos.dart';
@@ -10,7 +9,6 @@ import '../../../widgets/banner_aviso.dart';
 import '../../../widgets/fondo_animado.dart';
 import '../../../widgets/panel_vidrio.dart';
 import 'buscador_controller.dart';
-import 'datos_demo.dart';
 import 'raiz_controller.dart';
 import 'widgets/barra_busqueda.dart';
 import 'widgets/panel_filtros.dart';
@@ -56,10 +54,6 @@ class PantallaBusqueda extends StatelessWidget {
             };
         final hayRaiz = rutaRaiz != null;
         return Scaffold(
-          // TEMPORAL (Fase 12): selector de estados de demostración.
-          floatingActionButton: kDebugMode && hayRaiz
-              ? SelectorEstadoDemo(controller: controller)
-              : null,
           body: FondoAnimado(
             child: Column(
               children: [
@@ -279,7 +273,12 @@ class _ContenidoAnimado extends StatelessWidget {
                 mensaje: mensaje,
               ),
               EstadoConResultados(:final tickets, :final total) =>
-                _ListaResultados(tickets: tickets, total: total, raiz: ruta),
+                _ListaResultados(
+                  tickets: tickets,
+                  total: total,
+                  raiz: ruta,
+                  elementosDe: controller.elementosDe,
+                ),
             },
           )
         : (estadoRaiz.runtimeType, VistaRaiz(controller: raiz));
@@ -310,6 +309,7 @@ class _ListaResultados extends StatelessWidget {
     required this.tickets,
     required this.total,
     required this.raiz,
+    required this.elementosDe,
   });
 
   final List<Ticket> tickets;
@@ -317,6 +317,10 @@ class _ListaResultados extends StatelessWidget {
   /// Coincidencias totales (mayor que `tickets.length` si se recortó).
   final int total;
   final String raiz;
+
+  /// Conteo de elementos; la lista solo construye las tarjetas visibles, así
+  /// que solo se cuentan esas.
+  final Future<int?> Function(Ticket ticket, String raiz) elementosDe;
 
   @override
   Widget build(BuildContext context) {
@@ -354,8 +358,7 @@ class _ListaResultados extends StatelessWidget {
               child: TarjetaTicket(
                 ticket: ticket,
                 ruta: ticket.rutaEn(raiz),
-                // TEMPORAL (Fase 12): conteo real bajo demanda.
-                elementos: DatosDemo.elementosDe(ticket),
+                elementos: elementosDe(ticket, raiz),
                 // Sin lógica todavía: Fase 13 y Fase 14.
                 onAbrir: () {},
                 onCopiar: () {},

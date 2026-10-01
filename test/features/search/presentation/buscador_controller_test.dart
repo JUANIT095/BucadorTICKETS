@@ -207,6 +207,28 @@ void main() {
     });
   });
 
+  test(
+    'conteo de elementos: se recuerda y se olvida con otro índice',
+    () async {
+      var llamadas = 0;
+      final c = BuscadorController(
+        repositorio: repositorio,
+        escaner: escanearRaiz,
+        contador: (_) async => ++llamadas,
+      );
+      controladores.add(c);
+      await c.activarRaiz(raiz);
+      final ticket = c.tickets.single;
+
+      expect(await c.elementosDe(ticket, raiz), 1);
+      expect(await c.elementosDe(ticket, raiz), 1);
+      expect(llamadas, 1);
+
+      await c.actualizarIndice(raiz);
+      expect(await c.elementosDe(c.tickets.single, raiz), 2);
+    },
+  );
+
   test('el índice guardado conserva años vacíos para el filtro', () async {
     await crear().activarRaiz(raiz);
     final carga = await repositorio.cargar() as IndiceCargado;

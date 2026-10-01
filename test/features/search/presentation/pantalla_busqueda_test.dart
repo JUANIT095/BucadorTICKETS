@@ -4,13 +4,14 @@ import 'package:buscador_tickets/core/constants/textos.dart';
 import 'package:buscador_tickets/core/theme/app_theme.dart';
 import 'package:buscador_tickets/features/search/domain/filtros_busqueda.dart';
 import 'package:buscador_tickets/features/search/presentation/buscador_controller.dart';
-import 'package:buscador_tickets/features/search/presentation/datos_demo.dart';
 import 'package:buscador_tickets/features/search/presentation/pantalla_busqueda.dart';
 import 'package:buscador_tickets/features/search/presentation/raiz_controller.dart';
+import 'package:buscador_tickets/models/ticket.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/entorno_prueba.dart';
+import '../../../helpers/tickets_prueba.dart';
 
 final campoBusqueda = find.widgetWithText(TextField, Textos.pistaBusqueda);
 
@@ -20,12 +21,21 @@ void main() {
   late RaizController raiz;
   late String rutaRaiz;
 
+  /// Rutas cuyo conteo de elementos se pidió.
+  final conteos = <String>[];
+
   setUp(() {
     entorno = EntornoPrueba.crear();
     rutaRaiz = entorno.raiz('DISCO');
+    conteos.clear();
     controller = BuscadorController(
-      fechaIndice: DatosDemo.fechaIndice,
-      tickets: DatosDemo.tickets,
+      fechaIndice: TicketsPrueba.fechaIndice,
+      tickets: TicketsPrueba.tickets,
+      // Conteo simulado: sin E/S real en las pruebas de widget.
+      contador: (ruta) async {
+        conteos.add(ruta);
+        return ruta.contains("Varios") ? null : 12;
+      },
     );
   });
 
@@ -98,16 +108,16 @@ void main() {
 
   testWidgets('Estado de error muestra el mensaje', (tester) async {
     await montar(tester);
-    await mostrar(tester, const EstadoError(Textos.errorLeerIndice));
+    await mostrar(tester, const EstadoError(Textos.errorIndexar));
     expect(find.text(Textos.estadoError), findsOneWidget);
-    expect(find.text(Textos.errorLeerIndice), findsOneWidget);
+    expect(find.text(Textos.errorIndexar), findsOneWidget);
   });
 
   testWidgets('Resultados recortados: "Mostrando 2 de 250"', (tester) async {
     await montar(tester);
     await mostrar(
       tester,
-      EstadoConResultados(DatosDemo.tickets.take(2).toList(), total: 250),
+      EstadoConResultados(TicketsPrueba.tickets.take(2).toList(), total: 250),
     );
     expect(find.text(Textos.resultadosLimitados(2, 250)), findsOneWidget);
   });
@@ -116,11 +126,75 @@ void main() {
     tester,
   ) async {
     await montar(tester);
-    await mostrar(tester, EstadoConResultados(DatosDemo.tickets));
+    await mostrar(tester, EstadoConResultados(TicketsPrueba.tickets));
     expect(find.text(Textos.resultados(5)), findsOneWidget);
     expect(find.text('100219_Curación2 ABC - Proyecto IA'), findsOneWidget);
     expect(find.text(Textos.abrirCarpeta), findsWidgets);
     expect(find.text(Textos.copiarRuta), findsWidgets);
+  });
+
+  group('Elementos', () {
+    Finder dato(String valor) => find.textContaining(valor, findRichText: true);
+
+    testWidgets('muestra el conteo real cuando termina', (tester) async {
+      await montar(tester);
+      await mostrar(tester, EstadoConResultados(TicketsPrueba.tickets));
+      await tester.pump(); // resuelve el conteo simulado
+
+      expect(dato(Textos.elementos(12)), findsWidgets);
+      expect(
+        conteos.first,
+        '$rutaRaiz\\2024\\Mayo\\100219_Curación2 ABC - Proyecto IA',
+      );
+    });
+
+    testWidgets('solo se cuentan las tarjetas construidas (visibles)', (
+      tester,
+    ) async {
+      final muchos = [
+        for (var i = 0; i < 40; i++)
+          Ticket(
+            numero: '${100000 + i}',
+            nombre: 'Lote',
+            nombreCarpeta: '${100000 + i}_Lote',
+            anio: 2024,
+            mes: 5,
+            carpetaMes: 'Mayo',
+            rutaRelativa: '2024\\Mayo\\${100000 + i}_Lote',
+          ),
+      ];
+      await montar(tester);
+      await mostrar(tester, EstadoConResultados(muchos));
+      await tester.pump();
+
+      expect(conteos, isNotEmpty);
+      expect(conteos.length, lessThan(muchos.length));
+    });
+
+    testWidgets('carpeta no disponible ⇒ "No disponible"', (tester) async {
+      await montar(tester);
+      final varios = TicketsPrueba.tickets.firstWhere(
+        (t) => t.nombre == 'Varios',
+      );
+      await mostrar(tester, EstadoConResultados([varios]));
+      await tester.pump();
+
+      expect(dato(Textos.elementosNoDisponible), findsOneWidget);
+    });
+
+    testWidgets('cada carpeta se cuenta una sola vez por sesión', (
+      tester,
+    ) async {
+      await montar(tester);
+      final uno = [TicketsPrueba.tickets.first];
+      await mostrar(tester, EstadoConResultados(uno));
+      await tester.pump();
+      await mostrar(tester, const EstadoInicial());
+      await mostrar(tester, EstadoConResultados(uno));
+      await tester.pump();
+
+      expect(conteos, hasLength(1));
+    });
   });
 
   testWidgets('Enter busca y mantiene el foco en el campo', (tester) async {
@@ -138,13 +212,13 @@ void main() {
 
   testWidgets('El aviso se muestra y se puede cerrar', (tester) async {
     await montar(tester);
-    controller.mostrarAviso(Textos.avisoRaizNoDisponible);
+    controller.mostrarAviso(Textos.avisoIndiceRegenerado);
     await tester.pump();
-    expect(find.text(Textos.avisoRaizNoDisponible), findsOneWidget);
+    expect(find.text(Textos.avisoIndiceRegenerado), findsOneWidget);
 
     await tester.tap(find.byTooltip(Textos.cerrarAviso));
     await tester.pump();
-    expect(find.text(Textos.avisoRaizNoDisponible), findsNothing);
+    expect(find.text(Textos.avisoIndiceRegenerado), findsNothing);
   });
 
   testWidgets('Encabezado y pie muestran raíz, fecha y total', (tester) async {
@@ -153,7 +227,7 @@ void main() {
     expect(find.text(Textos.cambiarCarpeta), findsOneWidget);
     expect(find.text(Textos.actualizarIndice), findsOneWidget);
     expect(
-      find.text(Textos.indiceActualizado(DatosDemo.fechaIndice)),
+      find.text(Textos.indiceActualizado(TicketsPrueba.fechaIndice)),
       findsOneWidget,
     );
     expect(find.text(Textos.ticketsIndexados(5)), findsOneWidget);
@@ -266,7 +340,10 @@ void main() {
         () => crearRepositorio(entorno, 'datos_indice'),
       ))!;
       controller.dispose();
-      controller = BuscadorController(repositorio: repositorio);
+      controller = BuscadorController(
+        repositorio: repositorio,
+        contador: (_) async => null,
+      );
       await tester.runAsync(() => controller.activarRaiz(disco));
       Directory(disco).deleteSync(recursive: true);
 
