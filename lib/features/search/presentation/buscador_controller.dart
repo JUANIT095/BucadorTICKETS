@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import '../../../core/constants/textos.dart';
+import '../../../core/services/acciones_sistema.dart';
 import '../../../models/indice.dart';
 import '../../../models/ticket.dart';
 import '../data/contador_elementos.dart';
@@ -56,6 +57,10 @@ typedef Escaner = Future<Indice> Function(String raiz);
 /// Cuenta los elementos de la carpeta de un ticket (ruta absoluta).
 typedef ContadorElementos = Future<int?> Function(String ruta);
 
+/// Abre una carpeta en el Explorador (ruta absoluta del ticket y raíz).
+typedef AbrirCarpeta =
+    Future<ResultadoAbrir> Function(String ruta, {required String raiz});
+
 Future<Indice> _escanearEnIsolate(String raiz) =>
     Isolate.run(() => escanearRaiz(raiz));
 
@@ -68,18 +73,21 @@ class BuscadorController extends ChangeNotifier {
     Escaner escaner = _escanearEnIsolate,
     MotorBusqueda motor = const MotorBusqueda(),
     ContadorElementos contador = contarElementos,
+    AbrirCarpeta? abrir,
   }) : _fechaIndice = fechaIndice,
        _tickets = tickets,
        _repositorio = repositorio,
        _escaner = escaner,
        _motor = motor,
-       _contador = contador;
+       _contador = contador,
+       _abrir = abrir ?? const AccionesSistema().abrirCarpeta;
 
   /// Null = sin persistencia (p. ej. en pruebas): siempre se indexa.
   final RepositorioIndice? _repositorio;
   final Escaner _escaner;
   final MotorBusqueda _motor;
   final ContadorElementos _contador;
+  final AbrirCarpeta _abrir;
 
   /// Conteos ya pedidos en esta sesión, por ruta absoluta.
   final Map<String, Future<int?>> _elementos = {};
@@ -221,6 +229,10 @@ class BuscadorController extends ChangeNotifier {
     }
     _estado = const EstadoInicial();
   }
+
+  /// "Abrir carpeta": abre el ticket en el Explorador de Windows.
+  Future<ResultadoAbrir> abrirCarpeta(Ticket ticket, String raiz) =>
+      _abrir(ticket.rutaEn(raiz), raiz: raiz);
 
   /// Elementos de la carpeta de [ticket] bajo [raiz]. Se cuenta la primera vez
   /// que se pide (al construirse la tarjeta, es decir, solo para las tarjetas

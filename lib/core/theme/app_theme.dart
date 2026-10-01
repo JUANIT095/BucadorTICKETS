@@ -98,6 +98,16 @@ abstract final class AppTheme {
         backgroundColor: rojo,
         foregroundColor: blanco,
       ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: superficieMenu,
+        contentTextStyle: const TextStyle(color: blanco),
+        actionTextColor: rojoHover,
+        shape: RoundedRectangleBorder(
+          borderRadius: radio,
+          side: const BorderSide(color: bordeVidrio),
+        ),
+      ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
           color: superficieMenu,

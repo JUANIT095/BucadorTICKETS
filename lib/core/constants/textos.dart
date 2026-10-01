@@ -165,6 +165,16 @@ abstract final class Textos {
       'No se pudo generar el índice. Comprueba que el disco esté conectado y '
       'pulsa «Actualizar índice».';
 
+  // Abrir carpeta
+  static String carpetaCercanaAbierta(String ruta) =>
+      'La ruta es demasiado larga para que Windows la abra directamente; se '
+      'abrió la carpeta más cercana: $ruta';
+  static const ticketNoEncontrado =
+      'Este ticket ya no está en esa ubicación. Pulsa «Actualizar índice».';
+  static const unidadNoDisponible =
+      'No se puede abrir la carpeta: el disco no está conectado o no responde.';
+  static const errorAlAbrir = 'No se pudo abrir el Explorador de Windows.';
+
   // Pie
   static const indiceNoGenerado = 'Índice aún no generado';
   static String indiceActualizado(DateTime fecha) =>

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:buscador_tickets/core/constants/textos.dart';
+import 'package:buscador_tickets/core/services/acciones_sistema.dart';
 import 'package:buscador_tickets/core/theme/app_theme.dart';
 import 'package:buscador_tickets/features/search/domain/filtros_busqueda.dart';
 import 'package:buscador_tickets/features/search/presentation/buscador_controller.dart';
@@ -24,10 +25,16 @@ void main() {
   /// Rutas cuyo conteo de elementos se pidió.
   final conteos = <String>[];
 
+  /// Rutas que se pidió abrir y resultado simulado del Explorador.
+  final abiertas = <String>[];
+  ResultadoAbrir resultadoAbrir = const CarpetaAbierta();
+
   setUp(() {
     entorno = EntornoPrueba.crear();
     rutaRaiz = entorno.raiz('DISCO');
     conteos.clear();
+    abiertas.clear();
+    resultadoAbrir = const CarpetaAbierta();
     controller = BuscadorController(
       fechaIndice: TicketsPrueba.fechaIndice,
       tickets: TicketsPrueba.tickets,
@@ -35,6 +42,10 @@ void main() {
       contador: (ruta) async {
         conteos.add(ruta);
         return ruta.contains("Varios") ? null : 12;
+      },
+      abrir: (ruta, {required raiz}) async {
+        abiertas.add(ruta);
+        return resultadoAbrir;
       },
     );
   });
@@ -131,6 +142,50 @@ void main() {
     expect(find.text('100219_Curación2 ABC - Proyecto IA'), findsOneWidget);
     expect(find.text(Textos.abrirCarpeta), findsWidgets);
     expect(find.text(Textos.copiarRuta), findsWidgets);
+  });
+
+  group('Abrir carpeta', () {
+    Future<void> pulsarAbrir(WidgetTester tester) async {
+      await mostrar(tester, EstadoConResultados([TicketsPrueba.tickets.first]));
+      await tester.tap(find.text(Textos.abrirCarpeta));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+
+    testWidgets('abre la ruta completa del ticket, sin mensajes', (
+      tester,
+    ) async {
+      await montar(tester);
+      await pulsarAbrir(tester);
+
+      expect(abiertas, [
+        '$rutaRaiz\\2024\\Mayo\\100219_Curación2 ABC - Proyecto IA',
+      ]);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    for (final (nombre, resultado, mensaje) in [
+      ('ticket movido', const TicketNoEncontrado(), Textos.ticketNoEncontrado),
+      (
+        'disco desconectado',
+        const UnidadNoDisponible(),
+        Textos.unidadNoDisponible,
+      ),
+      ('error del Explorador', const ErrorAlAbrir(), Textos.errorAlAbrir),
+      (
+        'ruta demasiado larga',
+        const CarpetaCercanaAbierta(r'D:\2024'),
+        Textos.carpetaCercanaAbierta(r'D:\2024'),
+      ),
+    ]) {
+      testWidgets('$nombre ⇒ mensaje claro', (tester) async {
+        resultadoAbrir = resultado;
+        await montar(tester);
+        await pulsarAbrir(tester);
+
+        expect(find.text(mensaje), findsOneWidget);
+      });
+    }
   });
 
   group('Elementos', () {

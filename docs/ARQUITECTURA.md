@@ -264,7 +264,7 @@ cambiar a `BuscadorTickets`.
 | `file_selector` | Agregar (Fase 3/5) | No hay selector de carpeta nativo en Dart/Flutter. Oficial del equipo Flutter; usa el diálogo de Windows. |
 | `path` | Agregar (Fase 3) | Oficial de Dart, ya transitiva de Flutter (sin peso extra). Unión de rutas segura con UNC/red. |
 | `cupertino_icons` | **Quitar** (Fase 3) | No se usa en Windows. |
-| Abrir carpeta | Sin paquete | `Process.start('explorer.exe', [ruta])`. `explorer.exe` devuelve 1 aun con éxito: validar existencia antes, no el código de salida. |
+| Abrir carpeta | Sin paquete | `Process.start("explorer.exe", ["<ruta> "])` desacoplado (espacio final ⇒ comillas, necesarias con comas). `explorer.exe` devuelve 1 aun con éxito: se valida la existencia antes, no el código de salida. Rutas > 259 caracteres ⇒ carpeta más cercana. |
 | Portapapeles | Sin paquete | `Clipboard.setData` (`flutter/services`). |
 | Ruta del .exe, JSON, Isolates | Sin paquete | `dart:io`, `dart:convert`, `dart:isolate`. |
 | Estado | Sin paquete | `ChangeNotifier`. |
@@ -309,7 +309,7 @@ cambiar a `BuscadorTickets`.
 | Cambio de letra de unidad | Rutas relativas a la raíz en el índice + resolución de la raíz relativa al .exe y detección automática de unidades (§7). |
 | Raíz = unidad completa (`E:\`) | Válido; `System Volume Information` y `$RECYCLE.BIN` se ignoran. |
 | Índice corrupto o de otra raíz | Se descarta, se reindexa y se avisa. |
-| Rutas > 260 caracteres o con comas | Riesgo en `explorer.exe`; se prueba explícitamente en la Fase 13. |
+| Rutas > 260 caracteres o con comas | **Resuelto en la Fase 13 (comprobado con el Explorador real):** con comas sin comillas el Explorador abría "Documentos" ⇒ se fuerzan comillas con un espacio final. Rutas de más de 259 caracteres no las abre ⇒ se abre la carpeta antecesora más cercana y se avisa. Tildes y `&` funcionan. |
 | Consultas muy cortas (`1`, `a`) | Límite de 200 resultados + aviso "mostrando 200 de N". |
 
 ---
@@ -330,3 +330,4 @@ cambiar a `BuscadorTickets`.
 | 2026-10-01 | 10 | Indexación: `escanearRaiz` (años → meses → tickets + avisos) en `Isolate.run`; `Indice` (formato §4 con `anios` y `avisos`); `RepositorioIndice` (cargar/guardar `indice.json` con JSON en Isolate; dañado/otra versión ⇒ se regenera con aviso). `BuscadorController`: `activarRaiz` (índice guardado si es de esa raíz; si no, indexa), `actualizarIndice`, `cargarSinConexion` (raíz no encontrada + índice guardado ⇒ búsqueda habilitada con aviso, como preveía §7) y `desactivar`. "Actualizar índice" conectado; sin conexión, primero reintenta la raíz. Un cambio de letra de la raíz regenera el índice (la raíz guardada difiere). |
 | 2026-10-01 | 11 | `MotorBusqueda` (§5): puntos 1000/900/800/700/500/300; "contiene" y "empieza" miran el nombre y el nombre de carpeta normalizados; palabras clave = todas las palabras de la consulta (2 o más) como subcadena del nombre de carpeta; filtros antes de puntuar (con un mes elegido, los tickets sin mes no aparecen); desempate año desc, mes desc (sin mes al final), número asc numérico (sin número al final), nombre. Límite 200 con total real ("Mostrando 200 de N"). En el hilo principal: 11–18 ms típicos y ~130 ms en el peor caso con 20.000 tickets (modo pruebas). |
 | 2026-10-01 | 12 | Resultados: `contador_elementos.dart` (entradas directas con tiempo límite; error ⇒ null ⇒ "No disponible"); `BuscadorController.elementosDe` cuenta al construirse cada tarjeta (la lista solo construye las visibles) y guarda el resultado por ruta durante la sesión, vaciándolo al aplicar otro índice. Se eliminan `datos_demo.dart`, el selector de estados debug y todo lo marcado TEMPORAL; `mostrarEstado`/`mostrarAviso` quedan como `@visibleForTesting`. Los tickets de ejemplo pasan a `test/helpers/tickets_prueba.dart`. |
+| 2026-10-01 | 13 | Abrir carpeta: `AccionesSistema.abrirCarpeta` comprueba que la carpeta exista (si no, distingue ticket movido de disco desconectado: con una ruta inexistente el Explorador abre "Documentos" sin avisar), lanza `explorer.exe` desacoplado con un **espacio final** en el argumento para forzar comillas (sin comillas, una ruta con comas abre "Documentos"; comprobado) y, si la ruta supera 259 caracteres (el Explorador tampoco la abre), abre la carpeta antecesora más cercana y lo avisa. Mensajes breves (SnackBar con el estilo del tema). Verificado con un ticket real con tildes y `&`. |

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/textos.dart';
+import '../../../core/services/acciones_sistema.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/ticket.dart';
 import '../../../widgets/banner_aviso.dart';
@@ -278,6 +279,7 @@ class _ContenidoAnimado extends StatelessWidget {
                   total: total,
                   raiz: ruta,
                   elementosDe: controller.elementosDe,
+                  abrirCarpeta: controller.abrirCarpeta,
                 ),
             },
           )
@@ -310,6 +312,7 @@ class _ListaResultados extends StatelessWidget {
     required this.total,
     required this.raiz,
     required this.elementosDe,
+    required this.abrirCarpeta,
   });
 
   final List<Ticket> tickets;
@@ -321,6 +324,25 @@ class _ListaResultados extends StatelessWidget {
   /// Conteo de elementos; la lista solo construye las tarjetas visibles, así
   /// que solo se cuentan esas.
   final Future<int?> Function(Ticket ticket, String raiz) elementosDe;
+
+  final Future<ResultadoAbrir> Function(Ticket ticket, String raiz)
+  abrirCarpeta;
+
+  /// Abre el ticket; si no se pudo (o se abrió otra carpeta), lo explica en
+  /// un mensaje breve.
+  Future<void> _abrir(BuildContext context, Ticket ticket) async {
+    final mensaje = switch (await abrirCarpeta(ticket, raiz)) {
+      CarpetaAbierta() => null,
+      CarpetaCercanaAbierta(:final ruta) => Textos.carpetaCercanaAbierta(ruta),
+      TicketNoEncontrado() => Textos.ticketNoEncontrado,
+      UnidadNoDisponible() => Textos.unidadNoDisponible,
+      ErrorAlAbrir() => Textos.errorAlAbrir,
+    };
+    if (mensaje == null || !context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(mensaje)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -359,8 +381,8 @@ class _ListaResultados extends StatelessWidget {
                 ticket: ticket,
                 ruta: ticket.rutaEn(raiz),
                 elementos: elementosDe(ticket, raiz),
-                // Sin lógica todavía: Fase 13 y Fase 14.
-                onAbrir: () {},
+                onAbrir: () => _abrir(context, ticket),
+                // Sin lógica todavía: Fase 14.
                 onCopiar: () {},
               ),
             );
