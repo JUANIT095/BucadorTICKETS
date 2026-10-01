@@ -27,6 +27,9 @@ abstract final class AppConstants {
   static const archivoIndice = 'indice.json';
   static const versionIndice = 1;
 
+  /// Máximo de resultados mostrados (se avisa "mostrando 200 de N").
+  static const limiteResultados = 200;
+
   // Tiempos límite de disco (unidades USB o de red lentas pueden colgarse).
   // Holgados porque un disco USB en reposo tarda varios segundos en
   // despertar (comprobado con el disco real: más de 5 s).

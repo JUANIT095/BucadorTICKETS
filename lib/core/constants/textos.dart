@@ -54,6 +54,9 @@ abstract final class Textos {
   static const sinResultadosDetalle =
       'Intenta con otro número o palabra clave.';
   static const estadoError = 'No se pudo completar la operación';
+  static String resultadosLimitados(int mostrados, int total) =>
+      'Mostrando $mostrados de ${_miles(total)} resultados. '
+      'Escribe más para afinar la búsqueda.';
   static String resultados(int n) =>
       n == 1 ? '1 resultado' : '${_miles(n)} resultados';
 

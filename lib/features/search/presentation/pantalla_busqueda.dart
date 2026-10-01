@@ -278,10 +278,8 @@ class _ContenidoAnimado extends StatelessWidget {
               EstadoError(:final mensaje) => VistaEstado.error(
                 mensaje: mensaje,
               ),
-              EstadoConResultados(:final tickets) => _ListaResultados(
-                tickets: tickets,
-                raiz: ruta,
-              ),
+              EstadoConResultados(:final tickets, :final total) =>
+                _ListaResultados(tickets: tickets, total: total, raiz: ruta),
             },
           )
         : (estadoRaiz.runtimeType, VistaRaiz(controller: raiz));
@@ -308,9 +306,16 @@ class _ContenidoAnimado extends StatelessWidget {
 }
 
 class _ListaResultados extends StatelessWidget {
-  const _ListaResultados({required this.tickets, required this.raiz});
+  const _ListaResultados({
+    required this.tickets,
+    required this.total,
+    required this.raiz,
+  });
 
   final List<Ticket> tickets;
+
+  /// Coincidencias totales (mayor que `tickets.length` si se recortó).
+  final int total;
   final String raiz;
 
   @override
@@ -335,7 +340,9 @@ class _ListaResultados extends StatelessWidget {
           itemBuilder: (context, i) {
             if (i == 0) {
               return Text(
-                Textos.resultados(tickets.length),
+                total > tickets.length
+                    ? Textos.resultadosLimitados(tickets.length, total)
+                    : Textos.resultados(total),
                 style: tema.textTheme.labelLarge?.copyWith(
                   color: tema.colorScheme.onSurfaceVariant,
                 ),

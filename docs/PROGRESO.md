@@ -13,13 +13,13 @@ Leyenda: `[x]` completada · `[ ]` pendiente
 | 7 | Detección de meses | [x] | 2026-09-30 | Validada por el usuario (commit `32c17c1`). `CarpetaMes`; `core/utils/meses.dart` (`mesDeCarpeta`: nombres, Setiembre, abreviaturas, prefijos, "05 Mayo", "Mayo 2024", número solo estricto); `pareceTicket`; `DetectorMeses` (un listado por año en paralelo, tiempo límite por año, año ilegible no corta el resto). Reglas §9: mes → ticket sin mes (registrado para la Fase 8) → carpeta no reconocida (sus tickets se incluirán). Duplicados se conservan con aviso. `detectarEstructura` = años + meses. Corregido: el error de listar la propia carpeta (Windows lo reporta como "carpeta*") ya no se cuenta como entrada suelta; aplica también a la detección de años. 74 pruebas (15 nuevas). |
 | 8 | Detección de tickets | [x] | 2026-10-01 | Validada por el usuario (commit `e48a183`). **Ajuste previo por el disco real** (aprobado): carpetas de año `2024` además de METADA, cambio de letra exige un mes reconocido, tiempos límite 15 s / 10 s. Fase 8: `numeroYNombreDeTicket` (separadores `_`, `-`, `–`, espacio; corta en el primero; sin número ⇒ nombre = carpeta); `DetectorTickets` (un listado por mes en paralelo, mes ilegible no corta el resto, tickets sueltos en el año ⇒ sin mes); "Sin mes" en la tarjeta. Búsqueda provisional y pie con los tickets detectados (TEMPORAL hasta la Fase 10). **Verificado en el disco real (solo lectura):** años 2024–2026, `2024/Mayo`, 3 tickets correctos. 89 pruebas (15 nuevas). |
 | 9 | Modelo de datos | [x] | 2026-10-01 | Validada por el usuario (commit `8244172`). `normalizador.dart` (minúsculas, sin tildes ni diacríticos combinantes NFD, espacios colapsados; `palabrasNormalizadas` por espacio, `_`, `-`, `–`). `Ticket`: JSON del índice (entradas dañadas ⇒ null), campos normalizados en memoria, `rutaEn(raiz)`, igualdad por ruta. 102 pruebas (13 nuevas). |
-| 10 | Indexación | [x] | 2026-10-01 | Pendiente de validación del usuario. `escaner_directorios.dart` (`escanearRaiz` en `Isolate.run`, reúne tickets y avisos); `models/indice.dart`; `repositorio_indice.dart` (`indice.json` en `data_usuario`, JSON en Isolate, dañado ⇒ se regenera con aviso); `AlmacenamientoPortable.leerTexto/escribirTexto`. Controlador: índice guardado al arrancar si es de la misma raíz, si no indexa; "Actualizar índice" conectado; modo sin conexión con el último índice. Ya no usa los tickets de demostración (solo el selector debug). **Verificado con el disco real:** genera `indice.json` con los 3 tickets y en el segundo arranque lo reutiliza sin recorrer. 120 pruebas (18 nuevas). |
-| 11 | Motor de búsqueda | [ ] | | |
+| 10 | Indexación | [x] | 2026-10-01 | Validada por el usuario (commit `359e139`). `escaner_directorios.dart` (`escanearRaiz` en `Isolate.run`, reúne tickets y avisos); `models/indice.dart`; `repositorio_indice.dart` (`indice.json` en `data_usuario`, JSON en Isolate, dañado ⇒ se regenera con aviso); `AlmacenamientoPortable.leerTexto/escribirTexto`. Controlador: índice guardado al arrancar si es de la misma raíz, si no indexa; "Actualizar índice" conectado; modo sin conexión con el último índice. Ya no usa los tickets de demostración (solo el selector debug). **Verificado con el disco real:** genera `indice.json` con los 3 tickets y en el segundo arranque lo reutiliza sin recorrer. 120 pruebas (18 nuevas). |
+| 11 | Motor de búsqueda | [x] | 2026-10-01 | Pendiente de validación del usuario. `motor_busqueda.dart` (puntuación §5/§8, filtros, desempate, límite 200 con total); `BuscadorController.buscar` usa el motor (se elimina la búsqueda TEMPORAL que mostraba todo); cabecera "Mostrando 200 de N". **Verificado con el disco real:** los ejemplos de la sección 7 (100219, Curación2, CURACION2, Proyecto IA, nombre completo) devuelven 100219; "E&N" → 100222 y 100226. Rendimiento: 20.000 tickets en 11–18 ms (peor caso ~130 ms, a revisar en la Fase 16). 142 pruebas (22 nuevas). |
 | 12 | Resultados | [ ] | | Conteo de elementos bajo demanda para tarjetas visibles. **Eliminar `datos_demo.dart`** y todo lo marcado `TEMPORAL` (buscar "TEMPORAL" en `lib/`). |
 | 13 | Abrir carpeta | [ ] | | Probar rutas largas y con comas. |
 | 14 | Copiar ruta | [ ] | | |
 | 15 | Filtros | [ ] | | |
-| 16 | Optimización | [ ] | | |
+| 16 | Optimización | [ ] | | Medir el motor en Release; si el peor caso (todas las coincidencias) se nota, mover la búsqueda a `compute`. |
 | 17 | Pruebas | [ ] | | |
 | 18 | Build Release | [ ] | | Copiar runtime VC++ junto al .exe. |
 | 19 | Prueba de portabilidad | [ ] | | |
@@ -38,8 +38,8 @@ Leyenda: `[x]` completada · `[ ]` pendiente
   responder. La UI no se congela.
 - Un disco USB en reposo tarda más de 5 s en despertar (medido con el disco real: 6,1 s el primer
   recorrido); por eso los tiempos límite pasaron de 5 s / 1,5 s a 15 s / 10 s.
-- Desde la Fase 10 el pie muestra la fecha y el total reales del índice. La búsqueda sigue siendo
-  provisional (muestra todos los tickets del índice) hasta la Fase 11.
+- Desde la Fase 10 el pie muestra la fecha y el total reales del índice. Desde la Fase 11 la
+  búsqueda usa el motor real (§5); los filtros se aplican al buscar (su ajuste fino es la Fase 15).
 - El índice de desarrollo queda en `build\windows\x64\runner\Debug\data_usuario\indice.json`.
   Para forzar una indexación desde cero basta con borrarlo (o pulsar "Actualizar índice").
 - Si la raíz cambia de letra (D: → F:), la raíz guardada en el índice ya no coincide y se

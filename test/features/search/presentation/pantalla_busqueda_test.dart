@@ -103,6 +103,15 @@ void main() {
     expect(find.text(Textos.errorLeerIndice), findsOneWidget);
   });
 
+  testWidgets('Resultados recortados: "Mostrando 2 de 250"', (tester) async {
+    await montar(tester);
+    await mostrar(
+      tester,
+      EstadoConResultados(DatosDemo.tickets.take(2).toList(), total: 250),
+    );
+    expect(find.text(Textos.resultadosLimitados(2, 250)), findsOneWidget);
+  });
+
   testWidgets('Estado con resultados muestra tarjetas y acciones', (
     tester,
   ) async {

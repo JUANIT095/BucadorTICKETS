@@ -9,6 +9,7 @@ import '../../../models/ticket.dart';
 import '../data/escaner_directorios.dart';
 import '../data/repositorio_indice.dart';
 import '../domain/filtros_busqueda.dart';
+import '../domain/motor_busqueda.dart';
 
 sealed class EstadoBusqueda {
   const EstadoBusqueda();
@@ -31,9 +32,14 @@ class EstadoSinResultados extends EstadoBusqueda {
 }
 
 class EstadoConResultados extends EstadoBusqueda {
-  const EstadoConResultados(this.tickets);
+  const EstadoConResultados(this.tickets, {int? total})
+    : total = total ?? tickets.length;
 
+  /// Resultados mostrados (como máximo el límite).
   final List<Ticket> tickets;
+
+  /// Coincidencias totales; mayor que `tickets.length` si se recortó.
+  final int total;
 }
 
 class EstadoError extends EstadoBusqueda {
@@ -56,14 +62,17 @@ class BuscadorController extends ChangeNotifier {
     List<Ticket> tickets = const [],
     RepositorioIndice? repositorio,
     Escaner escaner = _escanearEnIsolate,
+    MotorBusqueda motor = const MotorBusqueda(),
   }) : _fechaIndice = fechaIndice,
        _tickets = tickets,
        _repositorio = repositorio,
-       _escaner = escaner;
+       _escaner = escaner,
+       _motor = motor;
 
   /// Null = sin persistencia (p. ej. en pruebas): siempre se indexa.
   final RepositorioIndice? _repositorio;
   final Escaner _escaner;
+  final MotorBusqueda _motor;
 
   DateTime? _fechaIndice;
   List<Ticket> _tickets;
@@ -202,15 +211,15 @@ class BuscadorController extends ChangeNotifier {
     _estado = const EstadoInicial();
   }
 
+  /// Busca en el índice cargado aplicando los filtros actuales.
   void buscar(String texto) {
-    // TEMPORAL (Fase 11): sin motor de búsqueda, cualquier consulta
-    // devuelve todos los tickets cargados.
     if (texto.trim().isEmpty) {
       _estado = const EstadoInicial();
-    } else if (_tickets.isEmpty) {
-      _estado = const EstadoSinResultados();
     } else {
-      _estado = EstadoConResultados(_tickets);
+      final resultado = _motor.buscar(_tickets, texto, _filtros);
+      _estado = resultado.tickets.isEmpty
+          ? const EstadoSinResultados()
+          : EstadoConResultados(resultado.tickets, total: resultado.total);
     }
     notifyListeners();
   }

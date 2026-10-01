@@ -170,6 +170,43 @@ void main() {
     expect(escaneos, 2);
   });
 
+  group('buscar', () {
+    test('usa el motor sobre el índice cargado', () async {
+      Directory(
+        p.join(raiz, '2025', 'Enero', '200001_Proyecto IA'),
+      ).createSync(recursive: true);
+      final c = crear();
+      await c.activarRaiz(raiz);
+
+      c.buscar('CURACION');
+      final estado = c.estado as EstadoConResultados;
+      expect(estado.tickets.single.numero, '100219');
+      expect(estado.total, 1);
+    });
+
+    test('respeta los filtros actuales', () async {
+      Directory(
+        p.join(raiz, '2025', 'Enero', '200001_Curación3'),
+      ).createSync(recursive: true);
+      final c = crear();
+      await c.activarRaiz(raiz);
+
+      c.cambiarFiltros(const FiltrosBusqueda(anio: 2025));
+      c.buscar('curacion');
+      expect((c.estado as EstadoConResultados).tickets.single.numero, '200001');
+    });
+
+    test('sin coincidencias ⇒ sin resultados; vacío ⇒ inicial', () async {
+      final c = crear();
+      await c.activarRaiz(raiz);
+
+      c.buscar('zzz');
+      expect(c.estado, isA<EstadoSinResultados>());
+      c.buscar('   ');
+      expect(c.estado, isA<EstadoInicial>());
+    });
+  });
+
   test('el índice guardado conserva años vacíos para el filtro', () async {
     await crear().activarRaiz(raiz);
     final carga = await repositorio.cargar() as IndiceCargado;
