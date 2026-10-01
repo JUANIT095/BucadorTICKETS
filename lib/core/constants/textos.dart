@@ -153,6 +153,18 @@ abstract final class Textos {
     return '${todos.take(5).join(', ')} y ${todos.length - 5} más';
   }
 
+  // Índice
+  static String avisoSinConexion(String ruta) =>
+      'La carpeta raíz ($ruta) no está disponible. Se muestran resultados del '
+      'último índice; conecta el disco y pulsa «Actualizar índice».';
+  static const avisoIndiceRegenerado =
+      'El índice guardado estaba dañado o era de otra versión; se generó de nuevo.';
+  static const avisoIndiceNoGuardado =
+      'No se pudo guardar el índice; se volverá a generar la próxima vez.';
+  static const errorIndexar =
+      'No se pudo generar el índice. Comprueba que el disco esté conectado y '
+      'pulsa «Actualizar índice».';
+
   // Pie
   static const indiceNoGenerado = 'Índice aún no generado';
   static String indiceActualizado(DateTime fecha) =>

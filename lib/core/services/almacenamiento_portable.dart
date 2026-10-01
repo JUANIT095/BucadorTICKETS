@@ -28,7 +28,7 @@ class AlmacenamientoPortable {
   final String? carpeta;
   final UbicacionDatos ubicacion;
 
-  final _memoria = <String, Map<String, dynamic>>{};
+  final _memoria = <String, String>{};
 
   /// Elige la carpeta de datos: junto al .exe → respaldo → memoria.
   static Future<AlmacenamientoPortable> iniciar({
@@ -66,35 +66,44 @@ class AlmacenamientoPortable {
   /// Devuelve null si el archivo no existe, no se puede leer o no es un
   /// objeto JSON válido.
   Future<Map<String, dynamic>?> leerJson(String nombre) async {
+    final texto = await leerTexto(nombre);
+    if (texto == null) return null;
+    try {
+      final datos = jsonDecode(texto);
+      return datos is Map<String, dynamic> ? datos : null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Future<bool> escribirJson(String nombre, Map<String, dynamic> datos) =>
+      escribirTexto(nombre, const JsonEncoder.withIndent('  ').convert(datos));
+
+  /// Contenido UTF-8 del archivo; null si no existe o no se puede leer.
+  Future<String?> leerTexto(String nombre) async {
     final carpeta = this.carpeta;
     if (carpeta == null) return _memoria[nombre];
     try {
       final archivo = File(p.join(carpeta, nombre));
       if (!await archivo.exists()) return null;
-      final datos = jsonDecode(await archivo.readAsString());
-      return datos is Map<String, dynamic> ? datos : null;
+      return await archivo.readAsString();
     } on FileSystemException {
-      return null;
-    } on FormatException {
       return null;
     }
   }
 
   /// Escritura atómica: se escribe un `.tmp` y se renombra. Devuelve false si
   /// no se pudo guardar.
-  Future<bool> escribirJson(String nombre, Map<String, dynamic> datos) async {
+  Future<bool> escribirTexto(String nombre, String contenido) async {
     final carpeta = this.carpeta;
     if (carpeta == null) {
-      _memoria[nombre] = datos;
+      _memoria[nombre] = contenido;
       return true;
     }
     try {
       final destino = p.join(carpeta, nombre);
       final temporal = File('$destino.tmp');
-      await temporal.writeAsString(
-        const JsonEncoder.withIndent('  ').convert(datos),
-        flush: true,
-      );
+      await temporal.writeAsString(contenido, flush: true);
       await temporal.rename(destino);
       return true;
     } on FileSystemException {

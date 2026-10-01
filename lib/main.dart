@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'core/services/almacenamiento_portable.dart';
+import 'features/search/data/repositorio_indice.dart';
 import 'features/search/data/servicio_raiz.dart';
 import 'features/search/presentation/raiz_controller.dart';
 
@@ -25,7 +26,12 @@ Future<void> main() async {
     seleccionarCarpeta: getDirectoryPath,
   );
 
-  runApp(BuscadorTicketsApp(raiz: raiz));
+  runApp(
+    BuscadorTicketsApp(
+      raiz: raiz,
+      repositorio: RepositorioIndice(almacenamiento),
+    ),
+  );
   // Después de runApp: la interfaz muestra "Verificando carpeta..." mientras
   // se resuelve la raíz.
   raiz.iniciar();

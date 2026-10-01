@@ -172,7 +172,7 @@ void main() {
     testWidgets('muestra "Todos" y los años detectados', (tester) async {
       entorno.raiz('DISCO', metada: ['METADA 2025', 'METADA 2027']);
       await montar(tester);
-      await tester.runAsync(() => controller.detectarEstructura(rutaRaiz));
+      await tester.runAsync(() => controller.actualizarIndice(rutaRaiz));
       await tester.pump();
 
       expect(controller.anios, [2027, 2025, 2024]);
@@ -190,13 +190,13 @@ void main() {
     ) async {
       entorno.raiz('DISCO', metada: ['METADA 2025']);
       await montar(tester);
-      await tester.runAsync(() => controller.detectarEstructura(rutaRaiz));
+      await tester.runAsync(() => controller.actualizarIndice(rutaRaiz));
       controller.cambiarFiltros(const FiltrosBusqueda(anio: 2025));
       await tester.pump();
       expect(textoFiltroAnio(tester), '2025');
 
       Directory('$rutaRaiz\\METADA 2025').deleteSync();
-      await tester.runAsync(() => controller.detectarEstructura(rutaRaiz));
+      await tester.runAsync(() => controller.actualizarIndice(rutaRaiz));
       await tester.pump();
 
       expect(controller.filtros.anio, isNull);
@@ -207,10 +207,74 @@ void main() {
     testWidgets('raíz sin años válidos ⇒ aviso claro', (tester) async {
       await montar(tester);
       Directory('$rutaRaiz\\METADA 2024').renameSync('$rutaRaiz\\METADA 1999');
-      await tester.runAsync(() => controller.detectarEstructura(rutaRaiz));
+      await tester.runAsync(() => controller.actualizarIndice(rutaRaiz));
       await tester.pump();
 
       expect(find.text(Textos.sinAnios), findsOneWidget);
+    });
+  });
+
+  group('Índice', () {
+    /// Espera (en tiempo real) a que termine la indexación.
+    Future<void> esperarIndexacion(WidgetTester tester) async {
+      for (var i = 0; i < 100 && controller.indexando; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+      }
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    testWidgets('"Actualizar índice" vuelve a recorrer la raíz', (
+      tester,
+    ) async {
+      Directory(
+        '$rutaRaiz\\METADA 2024\\Mayo\\100219_Curación2 ABC',
+      ).createSync(recursive: true);
+      await montar(tester);
+      expect(controller.totalTickets, 5); // aún los de demostración
+
+      final boton = tester.widget<TextButton>(
+        find.widgetWithText(TextButton, Textos.actualizarIndice),
+      );
+      await tester.runAsync(() async => boton.onPressed!());
+      await esperarIndexacion(tester);
+
+      expect(controller.totalTickets, 1);
+      expect(find.text(Textos.ticketsIndexados(1)), findsOneWidget);
+    });
+
+    testWidgets('sin conexión: busca en el último índice y avisa', (
+      tester,
+    ) async {
+      // Índice guardado de una raíz que luego "se desconecta".
+      final disco = entorno.raiz('USB', metada: ['2024']);
+      Directory(
+        '$disco\\2024\\Mayo\\100219_Curación2 ABC',
+      ).createSync(recursive: true);
+      final repositorio = (await tester.runAsync(
+        () => crearRepositorio(entorno, 'datos_indice'),
+      ))!;
+      controller.dispose();
+      controller = BuscadorController(repositorio: repositorio);
+      await tester.runAsync(() => controller.activarRaiz(disco));
+      Directory(disco).deleteSync(recursive: true);
+
+      await montar(tester, raizGuardada: disco);
+      await tester.runAsync(() => controller.cargarSinConexion(disco));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(controller.sinConexion, isTrue);
+      expect(find.text(Textos.avisoSinConexion(disco)), findsOneWidget);
+      expect(find.text(Textos.noEncontradaTitulo), findsNothing);
+      expect(campoHabilitado(tester), isTrue);
+
+      await tester.enterText(campoBusqueda, '100219');
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pump();
+      expect(find.text('100219_Curación2 ABC'), findsOneWidget);
     });
   });
 

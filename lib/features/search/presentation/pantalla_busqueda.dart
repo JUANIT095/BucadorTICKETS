@@ -29,12 +29,31 @@ class PantallaBusqueda extends StatelessWidget {
   final BuscadorController controller;
   final RaizController raiz;
 
+  /// "Actualizar índice": con raíz activa, vuelve a indexar. Sin conexión,
+  /// primero reintenta encontrar la raíz (p. ej. el disco se volvió a
+  /// conectar) y, si aparece, indexa.
+  Future<void> _actualizarIndice() async {
+    final activa = raiz.rutaActiva;
+    if (activa != null) return controller.actualizarIndice(activa);
+    await raiz.reintentar();
+    final recuperada = raiz.rutaActiva;
+    if (recuperada != null) await controller.actualizarIndice(recuperada);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: Listenable.merge([controller, raiz]),
       builder: (context, _) {
-        final rutaRaiz = raiz.rutaActiva;
+        // Raíz con la que se trabaja: la activa o, sin conexión, la última
+        // conocida (se busca en el índice guardado).
+        final rutaRaiz =
+            raiz.rutaActiva ??
+            switch (raiz.estado) {
+              RaizNoEncontrada(:final ultimaRuta) when controller.sinConexion =>
+                ultimaRuta,
+              _ => null,
+            };
         final hayRaiz = rutaRaiz != null;
         return Scaffold(
           // TEMPORAL (Fase 12): selector de estados de demostración.
@@ -47,6 +66,10 @@ class PantallaBusqueda extends StatelessWidget {
                 _Encabezado(
                   raiz: rutaRaiz,
                   onCambiarCarpeta: raiz.ocupado ? null : raiz.elegirCarpeta,
+                  onActualizarIndice:
+                      hayRaiz && !controller.indexando && !raiz.ocupado
+                      ? _actualizarIndice
+                      : null,
                 ),
                 _Centrado(
                   padding: const EdgeInsets.only(top: 24),
@@ -74,7 +97,11 @@ class PantallaBusqueda extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: _ContenidoAnimado(controller: controller, raiz: raiz),
+                  child: _ContenidoAnimado(
+                    controller: controller,
+                    raiz: raiz,
+                    rutaRaiz: rutaRaiz,
+                  ),
                 ),
                 _Pie(
                   fechaIndice: controller.fechaIndice,
@@ -129,12 +156,19 @@ class _Centrado extends StatelessWidget {
 }
 
 class _Encabezado extends StatelessWidget {
-  const _Encabezado({required this.raiz, required this.onCambiarCarpeta});
+  const _Encabezado({
+    required this.raiz,
+    required this.onCambiarCarpeta,
+    required this.onActualizarIndice,
+  });
 
   final String? raiz;
 
   /// Null mientras se verifica la carpeta.
   final VoidCallback? onCambiarCarpeta;
+
+  /// Null sin raíz o mientras se indexa.
+  final VoidCallback? onActualizarIndice;
 
   @override
   Widget build(BuildContext context) {
@@ -198,9 +232,8 @@ class _Encabezado extends StatelessWidget {
                   icon: const Icon(Icons.drive_folder_upload_outlined),
                   label: const Text(Textos.cambiarCarpeta),
                 ),
-                // Sin lógica todavía: Fase 10 (índice).
                 TextButton.icon(
-                  onPressed: () {},
+                  onPressed: onActualizarIndice,
                   icon: const Icon(Icons.refresh_rounded),
                   label: const Text(Textos.actualizarIndice),
                 ),
@@ -215,36 +248,43 @@ class _Encabezado extends StatelessWidget {
 
 /// Cambia entre estados con un fundido y un leve deslizamiento hacia arriba.
 class _ContenidoAnimado extends StatelessWidget {
-  const _ContenidoAnimado({required this.controller, required this.raiz});
+  const _ContenidoAnimado({
+    required this.controller,
+    required this.raiz,
+    required this.rutaRaiz,
+  });
 
   final BuscadorController controller;
   final RaizController raiz;
+
+  /// Raíz activa o, sin conexión, la última conocida; null = sin raíz.
+  final String? rutaRaiz;
 
   @override
   Widget build(BuildContext context) {
     final estadoRaiz = raiz.estado;
     final estado = controller.estado;
-    final (Object clave, Widget contenido) = switch (estadoRaiz) {
-      RaizVerificando() => (
-        RaizVerificando,
-        const VistaEstado.verificandoCarpeta(),
-      ),
-      RaizActiva(:final ruta) => (
-        estado is EstadoConResultados ? estado.tickets : estado.runtimeType,
-        switch (estado) {
-          EstadoInicial() => const VistaEstado.inicial(),
-          EstadoBuscando() => const VistaEstado.buscando(),
-          EstadoIndexando() => const VistaEstado.indexando(),
-          EstadoSinResultados() => const VistaEstado.sinResultados(),
-          EstadoError(:final mensaje) => VistaEstado.error(mensaje: mensaje),
-          EstadoConResultados(:final tickets) => _ListaResultados(
-            tickets: tickets,
-            raiz: ruta,
-          ),
-        },
-      ),
-      _ => (estadoRaiz.runtimeType, VistaRaiz(controller: raiz)),
-    };
+    final ruta = rutaRaiz;
+    final (Object clave, Widget contenido) = estadoRaiz is RaizVerificando
+        ? (RaizVerificando, const VistaEstado.verificandoCarpeta())
+        : ruta != null
+        ? (
+            estado is EstadoConResultados ? estado.tickets : estado.runtimeType,
+            switch (estado) {
+              EstadoInicial() => const VistaEstado.inicial(),
+              EstadoBuscando() => const VistaEstado.buscando(),
+              EstadoIndexando() => const VistaEstado.indexando(),
+              EstadoSinResultados() => const VistaEstado.sinResultados(),
+              EstadoError(:final mensaje) => VistaEstado.error(
+                mensaje: mensaje,
+              ),
+              EstadoConResultados(:final tickets) => _ListaResultados(
+                tickets: tickets,
+                raiz: ruta,
+              ),
+            },
+          )
+        : (estadoRaiz.runtimeType, VistaRaiz(controller: raiz));
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 320),

@@ -2,10 +2,23 @@ import 'dart:io';
 
 import 'package:buscador_tickets/core/constants/app_constants.dart';
 import 'package:buscador_tickets/core/services/almacenamiento_portable.dart';
+import 'package:buscador_tickets/features/search/data/repositorio_indice.dart';
 import 'package:buscador_tickets/features/search/data/servicio_raiz.dart';
 import 'package:buscador_tickets/features/search/presentation/raiz_controller.dart';
 import 'package:buscador_tickets/models/configuracion.dart';
 import 'package:path/path.dart' as p;
+
+/// Repositorio de índice en una carpeta de datos propia del [entorno]. Hace
+/// E/S real: en pruebas de widget, llamarlo dentro de `tester.runAsync`.
+Future<RepositorioIndice> crearRepositorio(
+  EntornoPrueba entorno,
+  String carpeta,
+) async => RepositorioIndice(
+  await AlmacenamientoPortable.iniciar(
+    rutaExe: entorno.exe(carpeta),
+    localAppData: null,
+  ),
+);
 
 /// Crea e inicia un [RaizController] sobre el [entorno]. Hace E/S real: en
 /// pruebas de widget, llamarlo dentro de `tester.runAsync`.

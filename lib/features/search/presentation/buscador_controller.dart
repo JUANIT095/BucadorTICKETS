@@ -1,12 +1,13 @@
+import 'dart:isolate';
+
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../core/constants/textos.dart';
-import '../../../models/carpeta_anio.dart';
-import '../../../models/carpeta_mes.dart';
+import '../../../models/indice.dart';
 import '../../../models/ticket.dart';
-import '../data/detector_anios.dart';
-import '../data/detector_meses.dart';
-import '../data/detector_tickets.dart';
+import '../data/escaner_directorios.dart';
+import '../data/repositorio_indice.dart';
 import '../domain/filtros_busqueda.dart';
 
 sealed class EstadoBusqueda {
@@ -42,180 +43,163 @@ class EstadoError extends EstadoBusqueda {
   final String mensaje;
 }
 
-/// Estado de la pantalla de búsqueda.
+/// Genera el índice de una raíz. Por defecto, en un Isolate.
+typedef Escaner = Future<Indice> Function(String raiz);
+
+Future<Indice> _escanearEnIsolate(String raiz) =>
+    Isolate.run(() => escanearRaiz(raiz));
+
+/// Estado de la pantalla de búsqueda y del índice.
 class BuscadorController extends ChangeNotifier {
   BuscadorController({
     DateTime? fechaIndice,
     List<Ticket> tickets = const [],
-    DetectorAnios detectorAnios = const DetectorAnios(),
-    DetectorMeses detectorMeses = const DetectorMeses(),
-    DetectorTickets detectorTickets = const DetectorTickets(),
+    RepositorioIndice? repositorio,
+    Escaner escaner = _escanearEnIsolate,
   }) : _fechaIndice = fechaIndice,
        _tickets = tickets,
-       _detectorAnios = detectorAnios,
-       _detectorMeses = detectorMeses,
-       _detectorTickets = detectorTickets;
+       _repositorio = repositorio,
+       _escaner = escaner;
 
-  final DateTime? _fechaIndice;
-  // TEMPORAL (Fase 10): se reemplaza por los tickets detectados hasta que
-  // exista el índice.
+  /// Null = sin persistencia (p. ej. en pruebas): siempre se indexa.
+  final RepositorioIndice? _repositorio;
+  final Escaner _escaner;
+
+  DateTime? _fechaIndice;
   List<Ticket> _tickets;
-  final DetectorAnios _detectorAnios;
-  final DetectorMeses _detectorMeses;
-  final DetectorTickets _detectorTickets;
+  List<int> _anios = const [];
   final List<String> _avisos = [];
   EstadoBusqueda _estado = const EstadoInicial();
   FiltrosBusqueda _filtros = const FiltrosBusqueda();
-  List<CarpetaAnio> _carpetasAnio = const [];
-  List<int> _anios = const [];
-  List<CarpetaMes> _carpetasMes = const [];
-  List<TicketSinMes> _ticketsSinMes = const [];
+  var _indexando = false;
+  var _sinConexion = false;
 
-  /// Avisos generados por la última detección; se reemplazan en la siguiente.
-  final Set<String> _avisosDeteccion = {};
+  /// Avisos que vienen del índice (y de su carga); se reemplazan al aplicar
+  /// otro índice.
+  final Set<String> _avisosIndice = {};
 
-  /// Invalida detecciones anteriores si la raíz cambia mientras se detecta.
-  var _generacionDeteccion = 0;
+  /// Invalida operaciones anteriores si la raíz cambia mientras se indexa.
+  var _generacion = 0;
 
   DateTime? get fechaIndice => _fechaIndice;
   int get totalTickets => _tickets.length;
-
-  /// Tickets cargados (por ahora, los detectados en la raíz).
   List<Ticket> get tickets => _tickets;
   EstadoBusqueda get estado => _estado;
   FiltrosBusqueda get filtros => _filtros;
   List<String> get avisos => List.unmodifiable(_avisos);
-  List<CarpetaAnio> get carpetasAnio => _carpetasAnio;
 
-  /// Años detectados en la raíz, del más reciente al más antiguo.
+  /// Años del índice, del más reciente al más antiguo.
   List<int> get anios => _anios;
 
-  /// Meses reconocidos y carpetas no reconocidas como mes (`mes == null`).
-  List<CarpetaMes> get carpetasMes => _carpetasMes;
+  bool get indexando => _indexando;
 
-  /// Carpetas con aspecto de ticket guardadas directamente en el año.
-  List<TicketSinMes> get ticketsSinMes => _ticketsSinMes;
+  /// La raíz no está disponible y se busca en el último índice guardado.
+  bool get sinConexion => _sinConexion;
 
-  /// Detecta años y meses de [raiz]; null = no hay raíz activa.
-  Future<void> detectarEstructura(String? raiz) async {
-    final generacion = ++_generacionDeteccion;
-    _avisos.removeWhere(_avisosDeteccion.contains);
-    _avisosDeteccion.clear();
-
-    if (raiz == null) {
-      _aplicarAnios(const []);
-      _carpetasMes = const [];
-      _ticketsSinMes = const [];
-      _tickets = const [];
+  /// Raíz activa: usa el índice guardado si es de esta raíz; si no hay, está
+  /// dañado o es de otra raíz, indexa.
+  Future<void> activarRaiz(String raiz) async {
+    final generacion = ++_generacion;
+    _sinConexion = false;
+    final carga = await _cargarGuardado();
+    if (generacion != _generacion) return;
+    if (carga case IndiceCargado(
+      :final indice,
+    ) when p.equals(indice.raiz, raiz)) {
+      _aplicar(indice);
       notifyListeners();
       return;
     }
+    await _indexar(raiz, generacion, indiceDanado: carga is IndiceDanado);
+  }
 
+  /// Botón "Actualizar índice": vuelve a recorrer la raíz.
+  Future<void> actualizarIndice(String raiz) => _indexar(raiz, ++_generacion);
+
+  /// La raíz no está disponible: si hay un índice guardado de esa raíz, se
+  /// puede buscar en él con aviso.
+  Future<void> cargarSinConexion(String ultimaRuta) async {
+    final generacion = ++_generacion;
+    final carga = await _cargarGuardado();
+    if (generacion != _generacion) return;
+    _indexando = false;
+    if (carga case IndiceCargado(
+      :final indice,
+    ) when p.equals(indice.raiz, ultimaRuta)) {
+      _sinConexion = true;
+      _aplicar(indice, extras: [Textos.avisoSinConexion(ultimaRuta)]);
+    } else {
+      _sinConexion = false;
+      _aplicar(null);
+    }
+    notifyListeners();
+  }
+
+  /// Sin raíz (primer uso, carpeta inválida…): se vacía el índice en memoria.
+  void desactivar() {
+    _generacion++;
+    _indexando = false;
+    _sinConexion = false;
+    _aplicar(null);
+    notifyListeners();
+  }
+
+  Future<CargaIndice> _cargarGuardado() async =>
+      await _repositorio?.cargar() ?? const SinIndice();
+
+  Future<void> _indexar(
+    String raiz,
+    int generacion, {
+    bool indiceDanado = false,
+  }) async {
+    _indexando = true;
+    _sinConexion = false;
     _estado = const EstadoIndexando();
     notifyListeners();
-    final anios = await _detectorAnios.detectar(raiz);
-    if (generacion != _generacionDeteccion) return;
 
-    var erroresLectura = 0;
-    switch (anios) {
-      case DeteccionAnios():
-        _aplicarAnios(anios.carpetas);
-        erroresLectura += anios.erroresLectura;
-        _avisosDeAnios(anios);
-      case DeteccionFallida(:final motivo):
-        _aplicarAnios(const []);
-        _avisoDeteccion(
-          Textos.avisoDeteccionFallida(switch (motivo) {
-            MotivoFalloDeteccion.noExiste => Textos.motivoNoExiste,
-            MotivoFalloDeteccion.sinPermisos => Textos.motivoSinPermisos,
-            MotivoFalloDeteccion.noResponde => Textos.motivoNoResponde,
-          }),
-        );
+    final Indice indice;
+    try {
+      indice = await _escaner(raiz);
+    } catch (_) {
+      // Fallo inesperado del recorrido: mensaje claro, sin detalles técnicos.
+      if (generacion != _generacion) return;
+      _indexando = false;
+      _estado = const EstadoError(Textos.errorIndexar);
+      notifyListeners();
+      return;
     }
+    if (generacion != _generacion) return;
+    final guardado = await _repositorio?.guardar(indice) ?? true;
+    if (generacion != _generacion) return;
 
-    final meses = await _detectorMeses.detectar(_carpetasAnio);
-    if (generacion != _generacionDeteccion) return;
-    _carpetasMes = meses.carpetas;
-    _ticketsSinMes = meses.ticketsSinMes;
-    erroresLectura += meses.erroresLectura;
-    _avisosDeMeses(meses);
-
-    final tickets = await _detectorTickets.detectar(raiz, meses);
-    if (generacion != _generacionDeteccion) return;
-    _tickets = tickets.tickets;
-    erroresLectura += tickets.erroresLectura;
-    if (tickets.ilegibles.isNotEmpty) {
-      _avisoDeteccion(
-        Textos.avisoMesesIlegibles([
-          for (final i in tickets.ilegibles)
-            '${i.carpeta.anio}/${i.carpeta.nombre}',
-        ]),
-      );
-    }
-
-    if (erroresLectura > 0) {
-      _avisoDeteccion(Textos.avisoErroresLectura(erroresLectura));
-    }
-    _estado = const EstadoInicial();
+    _indexando = false;
+    _aplicar(
+      indice,
+      extras: [
+        if (indiceDanado) Textos.avisoIndiceRegenerado,
+        if (!guardado) Textos.avisoIndiceNoGuardado,
+      ],
+    );
     notifyListeners();
   }
 
-  void _avisosDeAnios(DeteccionAnios anios) {
-    if (anios.carpetas.isEmpty) _avisoDeteccion(Textos.sinAnios);
-    for (final MapEntry(key: anio, value: nombres)
-        in anios.duplicados.entries) {
-      _avisoDeteccion(Textos.avisoAnioDuplicado(anio, nombres));
-    }
-    if (anios.ignoradas.isNotEmpty) {
-      _avisoDeteccion(
-        Textos.avisoCarpetasIgnoradas([
-          for (final c in anios.ignoradas)
-            Textos.carpetaIgnorada(
-              c.nombre,
-              c.motivo == MotivoIgnorada.anioFueraDeRango,
-            ),
-        ]),
-      );
-    }
-  }
-
-  void _avisosDeMeses(DeteccionMeses meses) {
-    for (final MapEntry(key: (anio, mes), value: nombres)
-        in meses.duplicados.entries) {
-      _avisoDeteccion(Textos.avisoMesDuplicado(anio, mes, nombres));
-    }
-    final noReconocidas = meses.noReconocidas;
-    if (noReconocidas.isNotEmpty) {
-      _avisoDeteccion(
-        Textos.avisoMesesNoReconocidos([
-          for (final c in noReconocidas) '${c.anio}/${c.nombre}',
-        ]),
-      );
-    }
-    if (meses.ticketsSinMes.isNotEmpty) {
-      _avisoDeteccion(Textos.avisoTicketsSinMes(meses.ticketsSinMes.length));
-    }
-    if (meses.ilegibles.isNotEmpty) {
-      _avisoDeteccion(
-        Textos.avisoAniosIlegibles([
-          for (final i in meses.ilegibles) i.carpeta.nombre,
-        ]),
-      );
-    }
-  }
-
-  void _aplicarAnios(List<CarpetaAnio> carpetas) {
-    _carpetasAnio = carpetas;
-    _anios = {for (final c in carpetas) c.anio}.toList();
+  /// Carga [indice] en memoria (null = vacío). Los resultados anteriores ya
+  /// no valen, así que la pantalla vuelve al estado inicial.
+  void _aplicar(Indice? indice, {List<String> extras = const []}) {
+    _tickets = indice?.tickets ?? const [];
+    _anios = indice?.anios ?? const [];
+    _fechaIndice = indice?.generado;
     // Si el año elegido ya no existe, el filtro vuelve a "Todos".
     if (_filtros.anio != null && !_anios.contains(_filtros.anio)) {
       _filtros = _filtros.conAnio(null);
     }
-  }
-
-  void _avisoDeteccion(String mensaje) {
-    _avisosDeteccion.add(mensaje);
-    if (!_avisos.contains(mensaje)) _avisos.add(mensaje);
+    _avisos.removeWhere(_avisosIndice.contains);
+    _avisosIndice.clear();
+    for (final aviso in [...?indice?.avisos, ...extras]) {
+      _avisosIndice.add(aviso);
+      if (!_avisos.contains(aviso)) _avisos.add(aviso);
+    }
+    _estado = const EstadoInicial();
   }
 
   void buscar(String texto) {

@@ -24,6 +24,8 @@ abstract final class AppConstants {
   static const carpetaRespaldo = 'BuscadorTickets';
   static const archivoConfig = 'config.json';
   static const versionConfig = 1;
+  static const archivoIndice = 'indice.json';
+  static const versionIndice = 1;
 
   // Tiempos límite de disco (unidades USB o de red lentas pueden colgarse).
   // Holgados porque un disco USB en reposo tarda varios segundos en

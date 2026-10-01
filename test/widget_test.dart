@@ -22,7 +22,7 @@ void main() {
     // La detección de años al arrancar hace E/S real: se le da tiempo real.
     for (
       var i = 0;
-      i < 20 && find.text(Textos.estadoInicial).evaluate().isEmpty;
+      i < 60 && find.text(Textos.estadoInicial).evaluate().isEmpty;
       i++
     ) {
       await tester.runAsync(

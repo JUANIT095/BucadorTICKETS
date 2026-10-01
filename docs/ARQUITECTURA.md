@@ -115,11 +115,15 @@ para la Fase 16 si se necesita).
 
 `indice.json`
 ```json
-{ "version": 1, "raiz": "D:\\DISCO", "generado": "2026-09-30T10:15:00",
-  "carpetasOmitidas": 0,
+{ "version": 1, "raiz": "D:\\", "generado": "2026-10-01T09:58:17.778",
+  "anios": [2026, 2025, 2024],
+  "avisos": [],
   "tickets": [ { "numero": "100219", "nombre": "…", "anio": 2024, "mes": 5,
-                 "carpetaMes": "Mayo", "ruta": "METADA 2024\\Mayo\\100219_…" } ] }
+                 "carpetaMes": "Mayo", "ruta": "2024\\Mayo\\100219_…" } ] }
 ```
+(Fase 10: `anios` conserva los años sin tickets para el filtro; `avisos` guarda los avisos de la
+detección ya redactados, que se vuelven a mostrar al cargar. Reemplazan a `carpetasOmitidas`.
+Sin sangría para reducir tamaño; codificar/decodificar se hace en un Isolate.)
 
 `config.json`
 ```json
@@ -322,3 +326,4 @@ cambiar a `BuscadorTickets`.
 | 2026-10-01 | 7→8 | **Ajuste por el disco real:** carpetas de año con el número solo (`2024`) además de METADA; validación, propuesta del padre, ignoradas y regla de escritura con ambos formatos; el cambio de letra exige un mes reconocido; tiempos límite 15 s / 10 s (disco USB en reposo). |
 | 2026-10-01 | 8 | `DetectorTickets` + `numeroYNombreDeTicket` (§9). Los tickets sueltos en el año entran como tickets sin mes (`carpetaMes` vacío ⇒ "Sin mes" en la tarjeta). `detectarEstructura` = años + meses + tickets. Hasta la Fase 10 la búsqueda provisional muestra los tickets detectados. |
 | 2026-10-01 | 9 | `Ticket` completo: `aJson`/`desdeJson` (formato §4; `nombreCarpeta` se deriva de `ruta`; entrada dañada ⇒ null y se descarta), campos en memoria `numeroNorm`, `nombreNorm`, `carpetaNorm`, `palabras` calculados al construir (ya no es `const`), `rutaEn(raiz)` e igualdad por ruta sin distinguir mayúsculas. `core/utils/normalizador.dart` se adelanta de la Fase 11 a la 9 porque los campos normalizados lo necesitan. |
+| 2026-10-01 | 10 | Indexación: `escanearRaiz` (años → meses → tickets + avisos) en `Isolate.run`; `Indice` (formato §4 con `anios` y `avisos`); `RepositorioIndice` (cargar/guardar `indice.json` con JSON en Isolate; dañado/otra versión ⇒ se regenera con aviso). `BuscadorController`: `activarRaiz` (índice guardado si es de esa raíz; si no, indexa), `actualizarIndice`, `cargarSinConexion` (raíz no encontrada + índice guardado ⇒ búsqueda habilitada con aviso, como preveía §7) y `desactivar`. "Actualizar índice" conectado; sin conexión, primero reintenta la raíz. Un cambio de letra de la raíz regenera el índice (la raíz guardada difiere). |
