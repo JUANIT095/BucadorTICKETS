@@ -110,3 +110,41 @@ ticket real con tildes y `&`, rutas con comas y largas en el Explorador real, CP
 10. [ ] Conectar el disco en otro puerto/PC (otra letra) con la app dentro del disco.
 11. [ ] Tamaño mínimo de ventana: nada se corta.
 12. [ ] Administrador de tareas: CPU baja en reposo y casi 0 sin foco.
+
+---
+
+## 6. Prueba de portabilidad (Fase 19)
+
+Hecha el 2026-10-01 con la carpeta `build\windows\x64\runner\Release\` **copiada** (no ejecutada
+en su sitio). El "disco" de prueba es una carpeta temporal con `2024\Mayo` (2 tickets, uno con coma
+y `&`), `2025\Enero` (1 ticket) y `2026` vacía. El disco real solo se **leyó** en el escenario 4.
+
+**Copia:** 16 archivos, 28,8 MB; SHA-256 idéntico al original. Sin `data_usuario` al entregar.
+
+| # | Escenario | Resultado |
+|---|---|---|
+| 1 | App dentro del disco (`<disco>\BuscadorTickets\`), ruta con espacios y `ñ`, primer uso | Pantalla de primer uso, sin errores |
+| 2 | Raíz configurada = carpeta padre del .exe (`raizRelativaExe` = `..`) | Indexa 3 tickets; `config.json` e `indice.json` en `data_usuario` junto al .exe |
+| 3 | El disco completo se traslada a otra ubicación (otro "PC") | Encuentra la raíz por la ruta relativa, avisa "Se detectó la carpeta raíz…", guarda la nueva ruta y regenera el índice |
+| 4 | App en el PC, raíz guardada `Q:\` (ya no existe); disco METADA en `D:` | Cambio de letra: encuentra `D:\` (tiene un mes reconocido), avisa e indexa 3 tickets |
+| 5 | Carpeta del programa sin permiso para crear archivos | Aviso "No se puede escribir junto al programa…" y usa `%LOCALAPPDATA%\BuscadorTickets` |
+
+**En todos:** el proceso carga `msvcp140.dll`, `vcruntime140.dll`, `vcruntime140_1.dll` y
+`flutter_windows.dll` **desde la carpeta de la app** (comprobado en los módulos del proceso);
+~130–145 MB de RAM; la carpeta raíz queda igual (solo las carpetas de año y la de la app).
+
+**Observaciones**
+- Con una unidad virtual `subst`, `Platform.resolvedExecutable` devuelve la ruta real (en `C:`), así
+  que la raíz se guarda con esa ruta. Funciona igual; con un disco físico se conserva su letra.
+  Por eso `subst` no sirve para simular un cambio de letra: se simuló moviendo la carpeta (3) y
+  con una letra inexistente (4).
+- El aviso de respaldo puede partir la ruta en dos líneas después de `C:` (solo visual).
+
+**No verificable en este equipo:** un PC **sin** el runtime de Visual C++ instalado. La app no
+depende de él (carga sus propias copias; `dumpbin` solo muestra DLL del sistema), pero conviene
+confirmarlo en otro PC.
+
+**Para el usuario (con el disco real):**
+1. Copiar la carpeta `Release` al disco como `<unidad>:\BuscadorTickets\`.
+2. Ejecutar `BuscadorTickets.exe` desde el disco, elegir la unidad y buscar `100219`.
+3. Expulsar el disco, conectarlo en otro puerto o PC (otra letra) y volver a abrir la app desde el disco: debe entrar directo, sin preguntar.
