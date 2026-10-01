@@ -106,7 +106,7 @@ class DetectorAnios {
         final nombre = p.basename(entrada.path);
         final anio = anioDeCarpeta(nombre);
         if (anio == null) {
-          if (pareceCarpetaMetada(nombre)) {
+          if (pareceCarpetaAnio(nombre)) {
             ignoradas.add(
               CarpetaIgnorada(nombre, MotivoIgnorada.formatoNoReconocido),
             );

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/meses.dart';
 import '../../../models/configuracion.dart';
 
 /// Resultado de validar una carpeta como raíz. Nunca se lanzan excepciones
@@ -33,13 +34,13 @@ class RaizNoResponde extends ValidacionRaiz {
   const RaizNoResponde();
 }
 
-class RaizSinMetada extends ValidacionRaiz {
-  const RaizSinMetada();
+class RaizSinAnios extends ValidacionRaiz {
+  const RaizSinAnios();
 }
 
 /// Se eligió una carpeta METADA; la raíz probablemente es [padre].
-class RaizEsCarpetaMetada extends ValidacionRaiz {
-  const RaizEsCarpetaMetada(this.padre);
+class RaizEsCarpetaAnio extends ValidacionRaiz {
+  const RaizEsCarpetaAnio(this.padre);
 
   final String padre;
 }
@@ -106,16 +107,16 @@ class ServicioRaiz {
     try {
       final carpeta = Directory(ruta);
       if (!await carpeta.exists()) return const RaizNoExiste();
-      if (AppConstants.patronMetada.hasMatch(p.basename(ruta))) {
-        return RaizEsCarpetaMetada(p.dirname(ruta));
+      if (AppConstants.esNombreDeAnio(p.basename(ruta))) {
+        return RaizEsCarpetaAnio(p.dirname(ruta));
       }
       await for (final entrada in carpeta.list(followLinks: false)) {
         if (entrada is Directory &&
-            AppConstants.patronMetada.hasMatch(p.basename(entrada.path))) {
+            AppConstants.esNombreDeAnio(p.basename(entrada.path))) {
           return RaizValida(ruta);
         }
       }
-      return const RaizSinMetada();
+      return const RaizSinAnios();
     } on FileSystemException {
       return const RaizSinPermisos();
     }
@@ -148,18 +149,52 @@ class ServicioRaiz {
       for (final unidad in await unidades())
         if (!p.equals(unidad, unidadOriginal)) p.join(unidad, resto),
     ];
-    final resultados = await Future.wait(
-      candidatas.map((c) => validar(c, limite: limitePorUnidad)),
-    );
+    final resultados = await Future.wait(candidatas.map(_esRaizEnOtraUnidad));
     final validas = [
       for (var i = 0; i < candidatas.length; i++)
-        if (resultados[i] is RaizValida) p.normalize(candidatas[i]),
+        if (resultados[i]) p.normalize(candidatas[i]),
     ];
 
     if (validas.length == 1) {
       return ResolucionEncontrada(validas.single, cambioDeUbicacion: true);
     }
     return ResolucionNoEncontrada(config.raiz, coincidencias: validas);
+  }
+
+  /// Al probar otra letra se exige más que en la validación normal: además de
+  /// una carpeta de año, al menos un mes reconocido dentro de alguna. Con
+  /// nombres tan genéricos como "2024", evita tomar otro disco (p. ej. uno
+  /// con una carpeta de fotos "2024") por la raíz.
+  Future<bool> _esRaizEnOtraUnidad(String candidata) async {
+    if (await validar(candidata, limite: limitePorUnidad) is! RaizValida) {
+      return false;
+    }
+    try {
+      return await _tieneMesReconocido(candidata).timeout(limitePorUnidad);
+    } on TimeoutException {
+      return false;
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  Future<bool> _tieneMesReconocido(String raiz) async {
+    await for (final anio in Directory(raiz).list(followLinks: false)) {
+      if (anio is! Directory ||
+          !AppConstants.esNombreDeAnio(p.basename(anio.path))) {
+        continue;
+      }
+      try {
+        await for (final mes in anio.list(followLinks: false)) {
+          if (mes is Directory && mesDeCarpeta(p.basename(mes.path)) != null) {
+            return true;
+          }
+        }
+      } on FileSystemException {
+        // Año ilegible: se prueba con el siguiente.
+      }
+    }
+    return false;
   }
 
   /// Configuración para [raiz]; agrega la ruta relativa al .exe solo si ambas

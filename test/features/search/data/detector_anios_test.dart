@@ -29,6 +29,20 @@ void main() {
       expect(anioDeCarpeta('METADATA 2024'), isNull);
       expect(anioDeCarpeta('METADA 2024 (copia)'), isNull);
       expect(anioDeCarpeta('Mayo'), isNull);
+      // Formato real del disco: número solo.
+      expect(anioDeCarpeta('2024'), 2024);
+      expect(anioDeCarpeta(' 2025 '), 2025);
+      expect(anioDeCarpeta('2024 (copia)'), isNull);
+      expect(anioDeCarpeta('20245'), isNull);
+    });
+
+    test('pareceCarpetaAnio', () {
+      expect(pareceCarpetaAnio('2024 (copia)'), isTrue);
+      expect(pareceCarpetaAnio('2024_viejo'), isTrue);
+      expect(pareceCarpetaAnio('METADATA 2025'), isTrue);
+      expect(pareceCarpetaAnio('100219_Curación2'), isFalse);
+      expect(pareceCarpetaAnio('1999 antiguo'), isFalse);
+      expect(pareceCarpetaAnio('Otros'), isFalse);
     });
   });
 
@@ -45,6 +59,21 @@ void main() {
     final c2024 = resultado.carpetas.last;
     expect(c2024.nombre, 'METADA 2024');
     expect(c2024.ruta, p.join(entorno.ruta('DISCO'), 'METADA 2024'));
+  });
+
+  test('estructura real: 2024, 2025, 2026 en la raíz de la unidad', () async {
+    final raiz = entorno.raiz('METADA', metada: ['2024', '2025', '2026']);
+    for (final sistema in [r'$RECYCLE.BIN', 'System Volume Information']) {
+      Directory(p.join(raiz, sistema)).createSync();
+    }
+    File(
+      p.join(raiz, '1 Year Standard Limited Warrant.pdf'),
+    ).writeAsStringSync('');
+    Directory(p.join(raiz, '2024 (copia)')).createSync();
+
+    final resultado = await detector.detectar(raiz) as DeteccionAnios;
+    expect(resultado.anios, [2026, 2025, 2024]);
+    expect(resultado.ignoradas.single.nombre, '2024 (copia)');
   });
 
   test('mayúsculas/minúsculas y espacios extra', () async {

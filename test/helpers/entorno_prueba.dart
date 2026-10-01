@@ -61,6 +61,14 @@ class EntornoPrueba {
     return carpeta;
   }
 
+  /// Raíz con un año y un mes reconocido (`<relativa>\2024\Mayo`), como la
+  /// estructura real del disco.
+  String raizConMes(String relativa) {
+    final carpeta = raiz(relativa, metada: ['2024']);
+    Directory(p.join(carpeta, '2024', 'Mayo')).createSync();
+    return carpeta;
+  }
+
   void eliminar() {
     if (base.existsSync()) base.deleteSync(recursive: true);
   }

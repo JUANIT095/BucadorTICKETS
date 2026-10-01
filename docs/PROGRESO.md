@@ -10,8 +10,8 @@ Leyenda: `[x]` completada · `[ ]` pendiente
 | 4 | Interfaz | [x] | 2026-09-30 | Pantalla completa con datos de demostración: encabezado (raíz + botones sin lógica), búsqueda con foco inicial y Enter, filtros Año/Mes, tarjeta, 6 estados, aviso, pie. Tema claro M3 (`AppTheme`), ancho máximo 900 px. `BuscadorController` con estado `sealed`; `Ticket` mínimo; `FiltrosBusqueda`. 10 pruebas de widget a 784×560. **Ajuste visual (aprobado):** reemplaza el tema claro por un tema único negro/blanco/rojo (`AppTheme.oscuro`) con fondo animado de brillos rojos difuminados (`FondoAnimado`), paneles de vidrio esmerilado (`PanelVidrio`) en encabezado, búsqueda, pie y avisos, transición entre estados, entrada escalonada de tarjetas, hover rojo en tarjetas, brillo del campo con foco y botón BUSCAR con degradado. Las tarjetas no usan desenfoque real (rendimiento). El fondo queda fijo si Windows tiene desactivadas las animaciones. |
 | 5 | Selección de carpeta raíz | [x] | 2026-09-30 | Validada por el usuario (commit `2d3cbcb`). `AppConstants.patronMetada`; `AlmacenamientoPortable` (data_usuario → `%LOCALAPPDATA%` → memoria, JSON UTF-8 atómico, nunca dentro de METADA); `Configuracion` (versión 1, JSON inválido = sin configuración); `ServicioRaiz` (validación tipada con tiempo límite; resolución relativa al .exe → absoluta → cambio de letra C:–Z:, UNC solo absoluta, ambigüedad → elige el usuario); `RaizController` separado con estado `sealed`; `VistaRaiz` (primer uso, no encontrada, inválida, propuesta del padre); búsqueda y filtros deshabilitados sin raíz; "Cambiar carpeta" con `getDirectoryPath`. 46 pruebas (36 nuevas) con carpetas ficticias. |
 | 6 | Detección de años | [x] | 2026-09-30 | Validada por el usuario (commit `7eef42a`). `CarpetaAnio`; `parser_carpetas.dart` (`anioDeCarpeta`, rango 2000–2100); `DetectorAnios` (solo primer nivel, solo directorios, asíncrono con tiempo límite, errores por entrada sin cortar el listado, resultado tipado). Reglas: separadores `_`/`-`/espacio aceptados; `METADATA`/"(copia)" ignoradas y registradas; duplicados del mismo año se conservan todos con aviso. Filtro Año con los años reales (vuelve a "Todos" si desaparece). Sin Isolate (un solo listado). 59 pruebas (13 nuevas). Con carpetas ficticias: disco USB no conectado. |
-| 7 | Detección de meses | [x] | 2026-09-30 | Pendiente de validación del usuario. `CarpetaMes`; `core/utils/meses.dart` (`mesDeCarpeta`: nombres, Setiembre, abreviaturas, prefijos, "05 Mayo", "Mayo 2024", número solo estricto); `pareceTicket`; `DetectorMeses` (un listado por año en paralelo, tiempo límite por año, año ilegible no corta el resto). Reglas §9: mes → ticket sin mes (registrado para la Fase 8) → carpeta no reconocida (sus tickets se incluirán). Duplicados se conservan con aviso. `detectarEstructura` = años + meses. Corregido: el error de listar la propia carpeta (Windows lo reporta como "carpeta*") ya no se cuenta como entrada suelta; aplica también a la detección de años. 74 pruebas (15 nuevas). |
-| 8 | Detección de tickets | [ ] | | |
+| 7 | Detección de meses | [x] | 2026-09-30 | Validada por el usuario (commit `32c17c1`). `CarpetaMes`; `core/utils/meses.dart` (`mesDeCarpeta`: nombres, Setiembre, abreviaturas, prefijos, "05 Mayo", "Mayo 2024", número solo estricto); `pareceTicket`; `DetectorMeses` (un listado por año en paralelo, tiempo límite por año, año ilegible no corta el resto). Reglas §9: mes → ticket sin mes (registrado para la Fase 8) → carpeta no reconocida (sus tickets se incluirán). Duplicados se conservan con aviso. `detectarEstructura` = años + meses. Corregido: el error de listar la propia carpeta (Windows lo reporta como "carpeta*") ya no se cuenta como entrada suelta; aplica también a la detección de años. 74 pruebas (15 nuevas). |
+| 8 | Detección de tickets | [x] | 2026-10-01 | Pendiente de validación del usuario. **Ajuste previo por el disco real** (aprobado): carpetas de año `2024` además de METADA, cambio de letra exige un mes reconocido, tiempos límite 15 s / 10 s. Fase 8: `numeroYNombreDeTicket` (separadores `_`, `-`, `–`, espacio; corta en el primero; sin número ⇒ nombre = carpeta); `DetectorTickets` (un listado por mes en paralelo, mes ilegible no corta el resto, tickets sueltos en el año ⇒ sin mes); "Sin mes" en la tarjeta. Búsqueda provisional y pie con los tickets detectados (TEMPORAL hasta la Fase 10). **Verificado en el disco real (solo lectura):** años 2024–2026, `2024/Mayo`, 3 tickets correctos. 89 pruebas (15 nuevas). |
 | 9 | Modelo de datos | [ ] | | Completar `Ticket` (toJson/fromJson, campos normalizados). |
 | 10 | Indexación | [ ] | | |
 | 11 | Motor de búsqueda | [ ] | | |
@@ -33,21 +33,20 @@ Leyenda: `[x]` completada · `[ ]` pendiente
 - En `flutter run` el .exe está en `build\windows\x64\runner\Debug\`, así que la configuración de
   desarrollo queda en `build\windows\x64\runner\Debug\data_usuario\config.json` (se borra con
   `flutter clean`).
-- Tiempo límite de disco: si una unidad se cuelga, la app deja de esperarla (5 s al validar,
-  1,5 s por unidad), pero la operación de Windows sigue ocupando un hilo interno hasta responder.
-  La UI no se congela.
-- El pie sigue mostrando fecha y total de los datos de demostración aunque no haya raíz
-  (TEMPORAL hasta la Fase 10/12).
+- Tiempo límite de disco: si una unidad se cuelga, la app deja de esperarla (15 s al validar o
+  detectar, 10 s por unidad), pero la operación de Windows sigue ocupando un hilo interno hasta
+  responder. La UI no se congela.
+- Un disco USB en reposo tarda más de 5 s en despertar (medido con el disco real: 6,1 s el primer
+  recorrido); por eso los tiempos límite pasaron de 5 s / 1,5 s a 15 s / 10 s.
+- Desde la Fase 8 el pie muestra el total de tickets detectados y la búsqueda provisional los
+  muestra todos; la fecha sigue siendo de demostración (TEMPORAL hasta la Fase 10).
 
 ## Pendientes abiertos
 
-- **Validar las fases 5, 6 y 7 con el disco USB real:** nombres reales de las carpetas de primer nivel y de mes frente a las reglas de §9 (variantes, duplicados, "(copia)"); además, en la Fase 5: resolución relativa al .exe (app dentro del USB),
-  cambio de letra al conectarlo en otro puerto/PC y el tiempo de detección de unidades.
-
-- **Validar el parser con datos reales.** El 2026-09-30 no se pudo listar `D:\DISCO`: en este
-  equipo no existe la unidad D: (solo C: y E:, y E: está vacía). Las reglas de
-  `ARQUITECTURA.md` §9 siguen siendo la propuesta inicial. Revisarlas antes o durante las
-  fases 6–8, cuando el disco esté conectado. Los datos están en un **disco externo USB** que
-  no estaba conectado; la letra real se verá al conectarlo.
-- Mientras no haya disco, las fases 5–8 se prueban con carpetas ficticias creadas en un
-  directorio temporal (nunca en datos reales).
+- **Disco real revisado el 2026-10-01 (solo lectura):** unidad "METADA" (D: en este equipo) con
+  `2024\Mayo` (3 tickets) y `2025`, `2026` vacías. Se ajustaron las reglas de año (número solo).
+  Quedan por validar en uso real: la app copiada dentro del disco (`<unidad>\BuscadorTickets\`,
+  resolución relativa `..`) y el cambio de letra al conectarlo en otro puerto/PC. Revisar las
+  reglas de meses y tickets cuando el disco tenga más datos.
+- Las pruebas automáticas siguen usando carpetas ficticias en un directorio temporal; el disco
+  real solo se lee en verificaciones manuales puntuales.

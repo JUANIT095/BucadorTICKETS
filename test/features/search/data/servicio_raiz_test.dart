@@ -52,6 +52,18 @@ void main() {
       );
     });
 
+    test('formato real del disco: carpetas "2024", "2025", "2026"', () async {
+      final raiz = entorno.raiz('METADA', metada: ['2024', '2025', '2026']);
+      expect(await servicio().validar(raiz), isA<RaizValida>());
+    });
+
+    test('elegir la carpeta "2024" propone la carpeta padre', () async {
+      final raiz = entorno.raiz('METADA', metada: ['2024']);
+      final resultado = await servicio().validar(p.join(raiz, '2024'));
+
+      expect((resultado as RaizEsCarpetaAnio).padre, raiz);
+    });
+
     test('carpeta inexistente ⇒ no existe', () async {
       expect(
         await servicio().validar(entorno.ruta('no_existe')),
@@ -62,15 +74,15 @@ void main() {
     test('sin carpetas METADA (un archivo con ese nombre no cuenta)', () async {
       final raiz = entorno.raiz('DISCO', metada: ['Otra carpeta']);
       File(p.join(raiz, 'METADA 2024')).writeAsStringSync('');
-      expect(await servicio().validar(raiz), isA<RaizSinMetada>());
+      expect(await servicio().validar(raiz), isA<RaizSinAnios>());
     });
 
     test('elegir una carpeta METADA propone la carpeta padre', () async {
       final raiz = entorno.raiz('DISCO');
       final resultado = await servicio().validar(p.join(raiz, 'METADA 2024'));
 
-      expect(resultado, isA<RaizEsCarpetaMetada>());
-      expect((resultado as RaizEsCarpetaMetada).padre, raiz);
+      expect(resultado, isA<RaizEsCarpetaAnio>());
+      expect((resultado as RaizEsCarpetaAnio).padre, raiz);
     });
   });
 
@@ -111,7 +123,7 @@ void main() {
       final unidadE = entorno.ruta('unidadE');
       final unidadF = entorno.ruta('unidadF');
       Directory(unidadE).createSync();
-      final raiz = entorno.raiz(p.join('unidadF', 'DISCO'));
+      final raiz = entorno.raizConMes(p.join('unidadF', 'DISCO'));
 
       final resultado = await servicio(
         unidades: [unidadE, unidadF],
@@ -122,11 +134,22 @@ void main() {
       expect(resultado.cambioDeUbicacion, isTrue);
     });
 
+    test('otra unidad con carpeta "2024" pero sin meses no se toma', () async {
+      // P. ej. un USB de fotos con una carpeta "2024": no es la raíz.
+      entorno.raiz(p.join('unidadFotos', 'DISCO'), metada: ['2024']);
+
+      final resultado = await servicio(
+        unidades: [entorno.ruta('unidadFotos')],
+      ).resolver(const Configuracion(raiz: _rutaEnOtraUnidad));
+
+      expect(resultado, isA<ResolucionNoEncontrada>());
+    });
+
     test(
       'varias unidades válidas ⇒ no elige y devuelve las opciones',
       () async {
-        entorno.raiz(p.join('unidadE', 'DISCO'));
-        entorno.raiz(p.join('unidadF', 'DISCO'));
+        entorno.raizConMes(p.join('unidadE', 'DISCO'));
+        entorno.raizConMes(p.join('unidadF', 'DISCO'));
 
         final resultado = await servicio(
           unidades: [entorno.ruta('unidadE'), entorno.ruta('unidadF')],

@@ -51,6 +51,7 @@ lib/
 │   │   ├── servicio_raiz.dart       Validación y resolución de la carpeta raíz (Fase 5)
 │   │   ├── detector_anios.dart      Carpetas de año en el primer nivel de la raíz (Fase 6)
 │   │   ├── detector_meses.dart      Carpetas de mes dentro de cada año (Fase 7)
+│   │   ├── detector_tickets.dart    Carpetas de ticket dentro de cada mes (Fase 8)
 │   │   ├── parser_carpetas.dart     Reconoce carpetas de año, mes y ticket (funciones puras)
 │   │   ├── escaner_directorios.dart Recorrido del disco (función ejecutada en Isolate)
 │   │   └── repositorio_indice.dart  Cargar/guardar/regenerar el índice
@@ -198,6 +199,13 @@ se distribuye **dentro de ese mismo disco**. La raíz suele ser la unidad comple
 y la letra puede cambiar según el PC o el puerto. Por eso `data_usuario\` (config + índice) viaja
 con el disco.
 
+**Disco real (revisado el 2026-10-01, solo lectura):** unidad con etiqueta "METADA"; en su raíz
+las carpetas de año se llaman **`2024`, `2025`, `2026`** (no `METADA 2024`; el usuario confirma
+que seguirán así). Estructura: `<unidad>\2024\Mayo\100219_Curación2 ABC - Proyecto IA`.
+Ubicación recomendada de la app: `<unidad>\BuscadorTickets\` (junto a los años, nunca dentro),
+con lo que `raizRelativaExe` = `..`. Un disco USB en reposo tarda **más de 5 s** en despertar:
+tiempos límite de 15 s (validar/detectar) y 10 s por unidad.
+
 **Resolución de la carpeta raíz al arrancar** (Fase 5), en este orden:
 1. **Relativa al .exe:** si la raíz está en la misma unidad que el .exe, `config.json` guarda
    también `raizRelativaExe` (p. ej. `..` o `..\..`). Si esa ruta existe, se usa; funciona con
@@ -208,6 +216,9 @@ con el disco.
    límite por unidad. Exactamente una coincidencia válida → se usa, se actualiza `config.json` y se
    avisa ("Se detectó la carpeta en F:\DISCO"). Varias → no se elige: se pide al usuario que elija.
    Ninguna → "raíz no encontrada". Las rutas UNC (`\\servidor\…`) solo se prueban como absolutas.
+   Con nombres tan genéricos como `2024`, una unidad candidata solo cuenta si alguna de sus
+   carpetas de año contiene **al menos un mes reconocido** (evita tomar, p. ej., un USB de fotos
+   con una carpeta `2024`).
 4. Sin raíz resuelta → estado "raíz no encontrada" (REINTENTAR / ELEGIR OTRA CARPETA) y búsqueda
    deshabilitada. En la Fase 10, si hay índice guardado, se permitirá buscar en él con aviso de
    raíz no disponible.
@@ -268,6 +279,7 @@ cambiar a `BuscadorTickets`.
 | Solo número (`100219`) | Nombre vacío; la tarjeta muestra el nombre de carpeta. |
 | Número duplicado en otro mes/año | Se muestran todos; clave = ruta. |
 | Ceros a la izquierda (`000123`) | Número como texto; `123` lo encuentra por coincidencia parcial. |
+| **Formato real:** número solo (`2024`, `2025`, `2026`) | **Aceptado** (es el formato del disco). También se aceptan las variantes METADA de la fila siguiente. Elegir `<unidad>\2024` propone la carpeta padre. `2024 (copia)` o `2024_viejo` se ignoran y se registran. |
 | Variantes de año (`Metada 2024`, `METADA_2024`, `METADA-2024`, `METADA2024`) | Aceptadas: `metada` + espacios, `_` o `-` opcionales + 4 dígitos, sin distinguir mayúsculas. Años aceptados 2000–2100, detectados dinámicamente (2027+ aparece solo en el filtro). |
 | `METADATA 2024`, `METADA 2024 (copia)` u otro nombre que contiene "metada" sin cumplir el patrón | Se ignora pero **se registra** y se avisa al usuario ("nombre no reconocido"). Un año fuera de 2000–2100 se registra como "año fuera de rango". Las carpetas que no se parecen a METADA no se registran. |
 | Dos carpetas del mismo año (`METADA 2024` y `metada_2024`) | Se conservan **todas** (no se pierde ningún ticket) y se avisa del duplicado. El filtro muestra el año una sola vez. |
@@ -307,3 +319,5 @@ cambiar a `BuscadorTickets`.
 | 2026-09-30 | 5 | Detección por cambio de letra de la ruta guardada (C:–Z:), ambigüedad → elige el usuario; propuesta del padre con confirmación; regla de escritura precisada; `RaizController` separado, `servicio_raiz.dart` y `vista_raiz.dart`. La configuración la manejan `AlmacenamientoPortable` + `Configuracion` (`repositorio_indice.dart` queda para el índice). |
 | 2026-09-30 | 6 | `DetectorAnios` + `CarpetaAnio`; reglas de variantes, duplicados y carpetas ignoradas (§9). Los años los guarda `BuscadorController` y la detección se lanza desde `app.dart` al cambiar la raíz activa. |
 | 2026-09-30 | 7 | `DetectorMeses` + `CarpetaMes` + `core/utils/meses.dart`; reglas de §9 (número solo estricto, duplicados, año ilegible). Las carpetas con aspecto de ticket dentro del año se registran como `TicketSinMes` para la Fase 8. `BuscadorController.detectarEstructura` detecta años y luego meses. El filtro Mes mantiene los 12 meses fijos (sección 9 del contexto). |
+| 2026-10-01 | 7→8 | **Ajuste por el disco real:** carpetas de año con el número solo (`2024`) además de METADA; validación, propuesta del padre, ignoradas y regla de escritura con ambos formatos; el cambio de letra exige un mes reconocido; tiempos límite 15 s / 10 s (disco USB en reposo). |
+| 2026-10-01 | 8 | `DetectorTickets` + `numeroYNombreDeTicket` (§9). Los tickets sueltos en el año entran como tickets sin mes (`carpetaMes` vacío ⇒ "Sin mes" en la tarjeta). `detectarEstructura` = años + meses + tickets. Hasta la Fase 10 la búsqueda provisional muestra los tickets detectados. |

@@ -6,6 +6,7 @@ import '../../../models/carpeta_mes.dart';
 import '../../../models/ticket.dart';
 import '../data/detector_anios.dart';
 import '../data/detector_meses.dart';
+import '../data/detector_tickets.dart';
 import '../domain/filtros_busqueda.dart';
 
 sealed class EstadoBusqueda {
@@ -48,15 +49,20 @@ class BuscadorController extends ChangeNotifier {
     List<Ticket> tickets = const [],
     DetectorAnios detectorAnios = const DetectorAnios(),
     DetectorMeses detectorMeses = const DetectorMeses(),
+    DetectorTickets detectorTickets = const DetectorTickets(),
   }) : _fechaIndice = fechaIndice,
        _tickets = tickets,
        _detectorAnios = detectorAnios,
-       _detectorMeses = detectorMeses;
+       _detectorMeses = detectorMeses,
+       _detectorTickets = detectorTickets;
 
   final DateTime? _fechaIndice;
-  final List<Ticket> _tickets;
+  // TEMPORAL (Fase 10): se reemplaza por los tickets detectados hasta que
+  // exista el índice.
+  List<Ticket> _tickets;
   final DetectorAnios _detectorAnios;
   final DetectorMeses _detectorMeses;
+  final DetectorTickets _detectorTickets;
   final List<String> _avisos = [];
   EstadoBusqueda _estado = const EstadoInicial();
   FiltrosBusqueda _filtros = const FiltrosBusqueda();
@@ -73,6 +79,9 @@ class BuscadorController extends ChangeNotifier {
 
   DateTime? get fechaIndice => _fechaIndice;
   int get totalTickets => _tickets.length;
+
+  /// Tickets cargados (por ahora, los detectados en la raíz).
+  List<Ticket> get tickets => _tickets;
   EstadoBusqueda get estado => _estado;
   FiltrosBusqueda get filtros => _filtros;
   List<String> get avisos => List.unmodifiable(_avisos);
@@ -97,6 +106,7 @@ class BuscadorController extends ChangeNotifier {
       _aplicarAnios(const []);
       _carpetasMes = const [];
       _ticketsSinMes = const [];
+      _tickets = const [];
       notifyListeners();
       return;
     }
@@ -129,6 +139,19 @@ class BuscadorController extends ChangeNotifier {
     _ticketsSinMes = meses.ticketsSinMes;
     erroresLectura += meses.erroresLectura;
     _avisosDeMeses(meses);
+
+    final tickets = await _detectorTickets.detectar(raiz, meses);
+    if (generacion != _generacionDeteccion) return;
+    _tickets = tickets.tickets;
+    erroresLectura += tickets.erroresLectura;
+    if (tickets.ilegibles.isNotEmpty) {
+      _avisoDeteccion(
+        Textos.avisoMesesIlegibles([
+          for (final i in tickets.ilegibles)
+            '${i.carpeta.anio}/${i.carpeta.nombre}',
+        ]),
+      );
+    }
 
     if (erroresLectura > 0) {
       _avisoDeteccion(Textos.avisoErroresLectura(erroresLectura));

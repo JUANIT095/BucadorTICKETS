@@ -26,7 +26,8 @@ class Ticket {
   /// Mes 1–12; null si la carpeta de mes no se reconoce.
   final int? mes;
 
-  /// Nombre original de la carpeta de mes, para mostrar.
+  /// Nombre original de la carpeta de mes, para mostrar; vacío si el ticket
+  /// está guardado directamente en la carpeta del año (sin mes).
   final String carpetaMes;
 
   /// Ruta relativa a la carpeta raíz.

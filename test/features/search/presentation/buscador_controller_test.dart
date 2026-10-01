@@ -37,6 +37,12 @@ void main() {
       ['2025/Enero/1', '2025/Pendientes/null', '2024/Mayo/5', '2024/Junio/6'],
     );
     expect(controller.ticketsSinMes.single.nombre, '100300_Suelto');
+    // El ticket suelto en el año se incluye como ticket sin mes.
+    expect(
+      [for (final t in controller.tickets) t.nombreCarpeta],
+      ['100300_Suelto'],
+    );
+    expect(controller.totalTickets, 1);
     expect(controller.avisos, [
       Textos.avisoMesesNoReconocidos(['2025/Pendientes']),
       Textos.avisoTicketsSinMes(1),

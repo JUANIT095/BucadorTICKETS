@@ -88,6 +88,26 @@ void main() {
     );
   });
 
+  test('tampoco dentro de una carpeta de año "2024"', () async {
+    final exe = entorno.exe(p.join('METADA', '2024', 'App'));
+    final almacenamiento = await AlmacenamientoPortable.iniciar(
+      rutaExe: exe,
+      localAppData: entorno.ruta('local'),
+    );
+    expect(almacenamiento.ubicacion, UbicacionDatos.respaldo);
+  });
+
+  test('app junto a las carpetas de año (raíz = unidad) ⇒ principal', () async {
+    // Caso real: D:\BuscadorTickets\ junto a D:\2024, D:\2025…
+    entorno.raiz('METADA', metada: ['2024', '2025']);
+    final exe = entorno.exe(p.join('METADA', 'BuscadorTickets'));
+    final almacenamiento = await AlmacenamientoPortable.iniciar(
+      rutaExe: exe,
+      localAppData: entorno.ruta('local'),
+    );
+    expect(almacenamiento.ubicacion, UbicacionDatos.principal);
+  });
+
   test('sin ubicación escribible trabaja en memoria', () async {
     File(entorno.ruta('bloqueo')).writeAsStringSync('');
     final almacenamiento = await AlmacenamientoPortable.iniciar(

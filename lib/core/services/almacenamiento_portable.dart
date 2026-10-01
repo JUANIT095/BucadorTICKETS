@@ -20,7 +20,7 @@ enum UbicacionDatos {
 /// de JSON en UTF-8.
 ///
 /// Solo escribe en su propia carpeta de datos; nunca en la raíz ni en
-/// carpetas METADA.
+/// carpetas de año.
 class AlmacenamientoPortable {
   AlmacenamientoPortable._(this.carpeta, this.ubicacion);
 
@@ -36,7 +36,7 @@ class AlmacenamientoPortable {
     required String? localAppData,
   }) async {
     final principal = p.join(p.dirname(rutaExe), AppConstants.carpetaDatos);
-    if (!_dentroDeMetada(principal) && await _esEscribible(principal)) {
+    if (!_dentroDeCarpetaAnio(principal) && await _esEscribible(principal)) {
       return AlmacenamientoPortable._(principal, UbicacionDatos.principal);
     }
     if (localAppData != null && localAppData.isNotEmpty) {
@@ -48,8 +48,8 @@ class AlmacenamientoPortable {
     return AlmacenamientoPortable._(null, UbicacionDatos.memoria);
   }
 
-  static bool _dentroDeMetada(String ruta) =>
-      p.split(ruta).any(AppConstants.patronMetada.hasMatch);
+  static bool _dentroDeCarpetaAnio(String ruta) =>
+      p.split(ruta).any(AppConstants.esNombreDeAnio);
 
   static Future<bool> _esEscribible(String carpeta) async {
     try {

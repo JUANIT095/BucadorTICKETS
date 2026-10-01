@@ -121,7 +121,7 @@ void main() {
     await raiz.elegirCarpeta();
 
     final estado = raiz.estado as RaizInvalida;
-    expect(estado.motivo, isA<RaizSinMetada>());
+    expect(estado.motivo, isA<RaizSinAnios>());
   });
 
   test('carpeta inválida con raíz activa ⇒ la mantiene y avisa', () async {
@@ -137,7 +137,7 @@ void main() {
     expect(raiz.rutaActiva, disco);
     expect(
       raiz.avisos,
-      contains(Textos.avisoCarpetaNoValida(Textos.motivoSinMetada)),
+      contains(Textos.avisoCarpetaNoValida(Textos.motivoSinAnios)),
     );
   });
 
@@ -163,7 +163,7 @@ void main() {
         AppConstants.archivoConfig,
         const Configuracion(raiz: r'Q:\DISCO').aJson(),
       );
-      final nueva = entorno.raiz(p.join('unidadF', 'DISCO'));
+      final nueva = entorno.raizConMes(p.join('unidadF', 'DISCO'));
       final raiz = crear(unidades: [entorno.ruta('unidadF')]);
       await raiz.iniciar();
 

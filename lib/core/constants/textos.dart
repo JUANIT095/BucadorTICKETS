@@ -36,6 +36,7 @@ abstract final class Textos {
   static const etiquetaUbicacion = 'Ubicación';
   static const etiquetaElementos = 'Elementos';
   static const sinNumero = 'Sin número';
+  static const sinMes = 'Sin mes';
   static const calculando = 'Calculando…';
   static const abrirCarpeta = 'ABRIR CARPETA';
   static const copiarRuta = 'COPIAR RUTA';
@@ -71,10 +72,10 @@ abstract final class Textos {
   static const usarCarpetaPropuesta = 'USAR LA CARPETA PROPUESTA';
   static const cancelar = 'CANCELAR';
   static const primerUsoTitulo =
-      'Selecciona la carpeta donde están las carpetas METADA';
+      'Selecciona la unidad o carpeta donde están las carpetas de año';
   static const primerUsoDetalle =
-      'Si están en un disco externo USB, conéctalo y elige la carpeta que '
-      'contiene «METADA 2024», «METADA 2025»… (por ejemplo E:\\DISCO).';
+      'Si están en un disco externo USB, conéctalo y elige la unidad o carpeta '
+      'que contiene las carpetas «2024», «2025»… (por ejemplo, la unidad completa del disco).';
   static const noEncontradaTitulo = 'No se encuentra la carpeta raíz';
   static const noEncontradaDetalle =
       'Puede que el disco esté desconectado o haya cambiado de ubicación. '
@@ -93,8 +94,8 @@ abstract final class Textos {
   static const motivoSinPermisos = 'No hay permisos para leer esta carpeta.';
   static const motivoNoResponde =
       'La unidad no responde. Si es un disco USB o de red, revisa la conexión.';
-  static const motivoSinMetada =
-      'Esta carpeta no contiene carpetas METADA (por ejemplo «METADA 2024»).';
+  static const motivoSinAnios =
+      'Esta carpeta no contiene carpetas de año (por ejemplo «2024»).';
   static String avisoCarpetaNoValida(String motivo) =>
       'No se cambió la carpeta raíz. $motivo';
   static String avisoRaizDetectada(String ruta) =>
@@ -110,14 +111,14 @@ abstract final class Textos {
   // Detección de años
   static const sinAnios =
       'La carpeta raíz no tiene carpetas de año válidas '
-      '(por ejemplo «METADA 2024»).';
+      '(por ejemplo «2024»).';
   static String avisoAnioDuplicado(int anio, List<String> carpetas) =>
       'El año $anio aparece en varias carpetas '
       '(${carpetas.map((c) => '«$c»').join(', ')}); se usarán todas.';
   static String carpetaIgnorada(String nombre, bool fueraDeRango) =>
       '«$nombre» (${fueraDeRango ? 'año fuera de rango' : 'nombre no reconocido'})';
   static String avisoCarpetasIgnoradas(List<String> descripciones) =>
-      'Se ignoraron carpetas con nombre parecido a METADA: '
+      'Se ignoraron carpetas con nombre parecido a una carpeta de año: '
       '${descripciones.join(', ')}.';
   static String avisoErroresLectura(int n) => n == 1
       ? 'Una carpeta no se pudo leer.'
@@ -139,6 +140,10 @@ abstract final class Textos {
             'del año; se incluirán como tickets sin mes.';
   static String avisoAniosIlegibles(List<String> carpetas) =>
       'No se pudieron leer los meses de '
+      '${_lista(carpetas.map((c) => '«$c»'))}.';
+
+  static String avisoMesesIlegibles(List<String> carpetas) =>
+      'No se pudieron leer los tickets de '
       '${_lista(carpetas.map((c) => '«$c»'))}.';
 
   /// Une hasta 5 elementos y resume el resto: "a, b, c, d, e y 3 más".

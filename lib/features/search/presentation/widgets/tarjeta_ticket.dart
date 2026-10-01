@@ -115,7 +115,9 @@ class _TarjetaTicketState extends State<TarjetaTicket> {
                           ),
                           _Dato(
                             etiqueta: Textos.etiquetaMes,
-                            valor: ticket.carpetaMes,
+                            valor: ticket.carpetaMes.isEmpty
+                                ? Textos.sinMes
+                                : ticket.carpetaMes,
                           ),
                           _Dato(
                             etiqueta: Textos.etiquetaElementos,

@@ -54,8 +54,8 @@ String mensajeValidacion(ValidacionRaiz motivo) => switch (motivo) {
   RaizNoExiste() => Textos.motivoNoExiste,
   RaizSinPermisos() => Textos.motivoSinPermisos,
   RaizNoResponde() => Textos.motivoNoResponde,
-  RaizSinMetada() => Textos.motivoSinMetada,
-  RaizEsCarpetaMetada() || RaizValida() => '',
+  RaizSinAnios() => Textos.motivoSinAnios,
+  RaizEsCarpetaAnio() || RaizValida() => '',
 };
 
 /// Estado de la carpeta raíz: selección, validación, persistencia y
@@ -153,7 +153,7 @@ class RaizController extends ChangeNotifier {
       case RaizValida(:final ruta):
         await _guardar(ruta);
         _cambiar(RaizActiva(ruta));
-      case RaizEsCarpetaMetada(:final padre):
+      case RaizEsCarpetaAnio(:final padre):
         _estadoPrevio = anterior;
         _cambiar(RaizPropuestaPadre(seleccionada: ruta, padre: padre));
       default:

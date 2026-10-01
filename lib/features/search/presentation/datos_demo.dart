@@ -74,8 +74,12 @@ abstract final class DatosDemo {
     // "102310" sin valor: muestra "Calculando…".
   };
 
-  static int? elementosDe(Ticket ticket) =>
-      ticket.numero == null ? 3 : _elementos[ticket.numero];
+  /// Solo para los tickets de demostración; los reales muestran "Calculando…"
+  /// hasta que exista el conteo real (Fase 12).
+  static int? elementosDe(Ticket ticket) {
+    if (!tickets.contains(ticket)) return null;
+    return ticket.numero == null ? 3 : _elementos[ticket.numero];
+  }
 }
 
 /// Botón flotante (solo en modo debug) para alternar estados y avisos.
