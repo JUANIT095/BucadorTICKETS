@@ -128,3 +128,10 @@ install(PROGRAMS ${RUNTIME_VC_PORTABLE}
   DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+# Guía para el usuario final junto al .exe (Fase 20). Solo en Release/Profile:
+# es parte de la carpeta portable que se entrega.
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/distribucion/LEEME.txt"
+  DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  CONFIGURATIONS Profile;Release
+  COMPONENT Runtime)

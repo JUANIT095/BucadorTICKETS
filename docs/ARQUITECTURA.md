@@ -251,6 +251,7 @@ verificando, sin configurar, activa, no encontrada, inválida y propuesta de car
 - Runtime VC++: `msvcp140.dll`, `vcruntime140.dll`, `vcruntime140_1.dll` (Flutter **no** los
   incluye; se copian junto al .exe — despliegue app-local).
 - `native_assets.json` (lo genera Flutter; vacío en este proyecto).
+- `LEEME.txt` (guía para el usuario final; fuente en `windows/distribucion/`, copiada por CMake).
 
 **Build Release (Fase 18):** `flutter build windows --release`. El paso `install` de
 `windows/CMakeLists.txt` copia automáticamente las 3 DLL del runtime VC++ desde el redistribuible
@@ -261,8 +262,10 @@ plugin necesitan esas 3; `flutter_windows.dll` solo usa DLL del sistema; la UCRT
 (verificado). Tamaño de la carpeta: **28,8 MB**. Metadatos del .exe: "Buscador de Tickets",
 versión 1.0.0+1 (de `pubspec.yaml`).
 
-**Pendiente Fase 3:** `BINARY_NAME` en `windows/CMakeLists.txt` es hoy `"buscador_tickets"` →
-cambiar a `BuscadorTickets`.
+**Paquete (Fase 20):** `scripts\empaquetar.ps1` compila, verifica los archivos, copia la
+carpeta a `dist\BuscadorTickets\` sin `data_usuario` y crea `BuscadorTickets-<versión>-windows-x64.zip`
+con su SHA-256 (17 archivos, 28,8 MB; ZIP 11,9 MB). Icono propio en `app_icon.ico`, generado con
+`scripts\generar_icono.ps1`. Guía de entrega en `DISTRIBUCION.md`.
 
 ---
 
@@ -346,3 +349,4 @@ cambiar a `BuscadorTickets`.
 | 2026-10-01 | 17 | Pruebas: cobertura 93,1 % → 95,5 %; pruebas nuevas para avisos de configuración (respaldo, memoria, no guardada), fallos de almacenamiento, vistas de carpeta inválida y de varias unidades, filtro Mes desde el menú, unidades reales del sistema y una prueba de **punta a punta** (`test/flujo_completo_test.dart`). Nuevo `docs/PRUEBAS.md` (cómo ejecutar, inventario, cobertura, matriz casos límite §9 → prueba, lista de verificación manual). |
 | 2026-10-01 | 18 | Build Release: copia automática del runtime VC++ (3 DLL) en el `install` de CMake desde el redistribuible oficial de Visual Studio; metadatos del .exe sin restos de la plantilla (`com.example`). Carpeta Release de 28,8 MB verificada: arranca en primer uso y carga las DLL locales. |
 | 2026-10-01 | 19 | Prueba de portabilidad con la carpeta Release copiada (sin cambios de código): app dentro de un disco simulado, traslado completo del disco (resolución relativa `..`), cambio de letra real (`Q:\` guardada → disco encontrado en `D:\`), carpeta no escribible (respaldo en `%LOCALAPPDATA%` con aviso), rutas con espacios y `ñ`. Observado: `Platform.resolvedExecutable` resuelve las unidades `subst` a su ruta real, así que con `subst` la raíz se guarda con la ruta real (correcto; con un disco físico se conserva la letra). Detalle en `PRUEBAS.md` §6. |
+| 2026-10-01 | 20 | Preparación de distribución: icono propio (`app_icon.ico`, 9 tamaños, generado con `scripts\generar_icono.ps1`), `LEEME.txt` para el usuario final copiado por CMake junto al .exe, `scripts\empaquetar.ps1` (compila, verifica, excluye `data_usuario`, ZIP + SHA-256 en `dist/`, ignorado por git), `README.md` y `docs/DISTRIBUCION.md`. Sin cambios en `lib/`. |

@@ -1,0 +1,70 @@
+BUSCADOR DE TICKETS
+===================
+
+Busca los tickets guardados en las carpetas de año (2024, 2025, 2026...) y
+abre su carpeta con un clic. No necesita instalación ni Internet.
+
+
+CÓMO EMPEZAR
+------------
+1. Conecta el disco donde están las carpetas de año.
+2. Abre BuscadorTickets.exe.
+3. La primera vez, pulsa SELECCIONAR CARPETA y elige la unidad o carpeta que
+   contiene las carpetas 2024, 2025, 2026... (por ejemplo, la unidad completa
+   del disco). La aplicación revisa los tickets y queda lista.
+4. Escribe un número de ticket, un nombre o una palabra clave y pulsa Enter o
+   BUSCAR.
+5. En el resultado, pulsa ABRIR CARPETA para verla en el Explorador, o
+   COPIAR RUTA para pegar la ubicación donde la necesites.
+
+Las siguientes veces la aplicación recuerda la carpeta y entra directo.
+
+
+CONSEJOS DE BÚSQUEDA
+--------------------
+- No importan las mayúsculas ni las tildes: "curacion" encuentra "Curación".
+- Puedes escribir parte del número (1002) o varias palabras en cualquier
+  orden (proyecto ia).
+- Usa los filtros Año y Mes para acotar. Sin escribir nada, los filtros
+  muestran todos los tickets de ese año o mes.
+- Si agregaste o renombraste carpetas, pulsa "Actualizar índice".
+
+
+DÓNDE COLOCAR LA APLICACIÓN
+---------------------------
+Recomendado: copia esta carpeta completa (BuscadorTickets) dentro del mismo
+disco donde están los tickets, por ejemplo E:\BuscadorTickets. Así funciona
+en cualquier PC y aunque Windows le asigne otra letra al disco.
+
+También puede ir en el escritorio o en otra carpeta del PC.
+
+Copia SIEMPRE la carpeta completa: el programa necesita todos sus archivos
+(.dll y la carpeta "data"). El archivo .exe solo no funciona.
+
+
+SEGURIDAD
+---------
+La aplicación solo LEE las carpetas de tickets: nunca borra, mueve, renombra
+ni modifica tus archivos. Lo único que guarda es su propia configuración en la
+carpeta "data_usuario", junto al programa. Si esa carpeta no se puede crear
+(por ejemplo, en una ubicación protegida), la guarda en
+%LOCALAPPDATA%\BuscadorTickets y lo avisa.
+
+
+SI ALGO NO FUNCIONA
+-------------------
+- "No se encuentra la carpeta raíz": conecta el disco y pulsa Reintentar, o elige
+  la carpeta otra vez con "Cambiar carpeta".
+- Disco desconectado: puedes seguir buscando en el último índice, pero para
+  abrir carpetas el disco debe estar conectado.
+- Un disco en reposo puede tardar unos segundos en responder la primera vez.
+- Si Windows muestra "Windows protegió su PC" al abrirlo por primera vez,
+  pulsa "Más información" y luego "Ejecutar de todas formas". Aparece con
+  programas descargados que no tienen firma digital; la aplicación es segura.
+- Para empezar de cero, cierra la aplicación y borra la carpeta
+  "data_usuario" (solo contiene la configuración y el índice).
+
+
+REQUISITOS
+----------
+Windows 10 o 11 de 64 bits. No hace falta instalar nada más.

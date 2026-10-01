@@ -45,3 +45,6 @@ app.*.map.json
 /android/app/release
 
 log.txt
+
+# Distribucion portable generada por scripts/empaquetar.ps1
+/dist/
