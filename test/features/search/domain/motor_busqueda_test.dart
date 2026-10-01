@@ -158,6 +158,24 @@ void main() {
     expect(_buscar(tickets, 'suelto', const FiltrosBusqueda(mes: 5)), isEmpty);
   });
 
+  test('filtrar sin texto: todos los del año/mes, en orden de desempate', () {
+    final tickets = [
+      _t('100001_A', anio: 2024, mes: 5),
+      _t('200002_B', anio: 2025, mes: 1, carpetaMes: 'Enero'),
+      _t('200001_C', anio: 2025, mes: 1, carpetaMes: 'Enero'),
+      _t('200003_D', anio: 2025, mes: 3, carpetaMes: 'Marzo'),
+    ];
+    final r = _motor.filtrar(tickets, const FiltrosBusqueda(anio: 2025));
+    expect(
+      [for (final t in r.tickets) t.nombreCarpeta],
+      ['200003_D', '200001_C', '200002_B'],
+    );
+    expect(
+      _motor.filtrar(tickets, const FiltrosBusqueda(anio: 2025, mes: 3)).total,
+      1,
+    );
+  });
+
   test('límite de resultados con total real', () {
     final muchos = [for (var i = 0; i < 250; i++) _t('${100000 + i}_Lote')];
     final resultado = _motor.buscar(muchos, 'lote', _sinFiltros);

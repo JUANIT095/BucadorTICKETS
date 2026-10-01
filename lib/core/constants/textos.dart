@@ -54,6 +54,8 @@ abstract final class Textos {
   static const sinResultados = 'No encontramos ningún ticket.';
   static const sinResultadosDetalle =
       'Intenta con otro número o palabra clave.';
+  static const sinResultadosConFiltros =
+      'Intenta con otro número o palabra clave, o cambia los filtros de año y mes.';
   static const estadoError = 'No se pudo completar la operación';
   static String resultadosLimitados(int mostrados, int total) =>
       'Mostrando $mostrados de ${_miles(total)} resultados. '

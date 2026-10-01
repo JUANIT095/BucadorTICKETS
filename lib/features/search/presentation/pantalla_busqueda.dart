@@ -269,7 +269,8 @@ class _ContenidoAnimado extends StatelessWidget {
               EstadoInicial() => const VistaEstado.inicial(),
               EstadoBuscando() => const VistaEstado.buscando(),
               EstadoIndexando() => const VistaEstado.indexando(),
-              EstadoSinResultados() => const VistaEstado.sinResultados(),
+              EstadoSinResultados(:final conFiltros) =>
+                VistaEstado.sinResultados(conFiltros: conFiltros),
               EstadoError(:final mensaje) => VistaEstado.error(
                 mensaje: mensaje,
               ),

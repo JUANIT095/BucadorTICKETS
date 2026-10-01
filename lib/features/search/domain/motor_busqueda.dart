@@ -57,6 +57,19 @@ class MotorBusqueda {
     ], total: puntuados.length);
   }
 
+  /// Sin texto: todos los tickets que pasan los filtros, en el orden de
+  /// desempate (año desc, mes desc, número asc).
+  ResultadoBusqueda filtrar(List<Ticket> tickets, FiltrosBusqueda filtros) {
+    final filtrados = <(Ticket, int)>[
+      for (final t in tickets)
+        if (_pasaFiltros(t, filtros)) (t, 0),
+    ];
+    filtrados.sort(_comparar);
+    return ResultadoBusqueda([
+      for (final (t, _) in filtrados.take(limite)) t,
+    ], total: filtrados.length);
+  }
+
   static bool _pasaFiltros(Ticket t, FiltrosBusqueda f) =>
       (f.anio == null || t.anio == f.anio) && (f.mes == null || t.mes == f.mes);
 

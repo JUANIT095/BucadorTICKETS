@@ -386,6 +386,43 @@ void main() {
 
       expect(find.text(Textos.sinAnios), findsOneWidget);
     });
+
+    testWidgets('elegir un año en el menú vuelve a buscar solo', (
+      tester,
+    ) async {
+      for (final ruta in [
+        '2024\\Mayo\\100219_Curación2',
+        '2025\\Enero\\200001_Curación3',
+      ]) {
+        Directory('$rutaRaiz\\$ruta').createSync(recursive: true);
+      }
+      await montar(tester);
+      await tester.runAsync(() => controller.actualizarIndice(rutaRaiz));
+      await tester.pump();
+      await tester.enterText(campoBusqueda, 'curacion');
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pump();
+      expect(find.text(Textos.resultados(2)), findsOneWidget);
+
+      await abrirFiltroAnio(tester);
+      await tester.tap(
+        find.widgetWithText(MenuItemButton, '2025').hitTestable().first,
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(controller.filtros.anio, 2025);
+      expect(find.text(Textos.resultados(1)), findsOneWidget);
+      expect(find.text('200001_Curación3'), findsOneWidget);
+    });
+
+    testWidgets('sin resultados con filtros sugiere cambiarlos', (
+      tester,
+    ) async {
+      await montar(tester);
+      await mostrar(tester, const EstadoSinResultados(conFiltros: true));
+      expect(find.text(Textos.sinResultadosConFiltros), findsOneWidget);
+    });
   });
 
   group('Índice', () {

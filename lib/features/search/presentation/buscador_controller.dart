@@ -30,7 +30,10 @@ class EstadoIndexando extends EstadoBusqueda {
 }
 
 class EstadoSinResultados extends EstadoBusqueda {
-  const EstadoSinResultados();
+  const EstadoSinResultados({this.conFiltros = false});
+
+  /// Había filtros activos: el mensaje sugiere cambiarlos.
+  final bool conFiltros;
 }
 
 class EstadoConResultados extends EstadoBusqueda {
@@ -101,6 +104,9 @@ class BuscadorController extends ChangeNotifier {
   final List<String> _avisos = [];
   EstadoBusqueda _estado = const EstadoInicial();
   FiltrosBusqueda _filtros = const FiltrosBusqueda();
+
+  /// Último texto buscado (para volver a buscar al cambiar un filtro).
+  var _consulta = '';
   var _indexando = false;
   var _sinConexion = false;
 
@@ -252,22 +258,34 @@ class BuscadorController extends ChangeNotifier {
     return _elementos[ruta] ??= _contador(ruta);
   }
 
-  /// Busca en el índice cargado aplicando los filtros actuales.
+  /// Busca en el índice cargado aplicando los filtros actuales. Con el texto
+  /// vacío y algún filtro elegido, lista todos los tickets de ese año/mes.
   void buscar(String texto) {
-    if (texto.trim().isEmpty) {
-      _estado = const EstadoInicial();
-    } else {
-      final resultado = _motor.buscar(_tickets, texto, _filtros);
-      _estado = resultado.tickets.isEmpty
-          ? const EstadoSinResultados()
-          : EstadoConResultados(resultado.tickets, total: resultado.total);
-    }
+    _consulta = texto;
+    _ejecutarBusqueda();
     notifyListeners();
   }
 
+  /// Cambiar un filtro vuelve a buscar con la consulta actual (o lista los
+  /// tickets filtrados si no hay texto); sin texto ni filtros, estado inicial.
   void cambiarFiltros(FiltrosBusqueda filtros) {
     _filtros = filtros;
+    _ejecutarBusqueda();
     notifyListeners();
+  }
+
+  void _ejecutarBusqueda() {
+    final hayTexto = _consulta.trim().isNotEmpty;
+    if (!hayTexto && !_filtros.activos) {
+      _estado = const EstadoInicial();
+      return;
+    }
+    final resultado = hayTexto
+        ? _motor.buscar(_tickets, _consulta, _filtros)
+        : _motor.filtrar(_tickets, _filtros);
+    _estado = resultado.tickets.isEmpty
+        ? EstadoSinResultados(conFiltros: _filtros.activos)
+        : EstadoConResultados(resultado.tickets, total: resultado.total);
   }
 
   @visibleForTesting

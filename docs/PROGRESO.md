@@ -17,8 +17,8 @@ Leyenda: `[x]` completada · `[ ]` pendiente
 | 11 | Motor de búsqueda | [x] | 2026-10-01 | Validada por el usuario (commit `15613f8`). `motor_busqueda.dart` (puntuación §5/§8, filtros, desempate, límite 200 con total); `BuscadorController.buscar` usa el motor (se elimina la búsqueda TEMPORAL que mostraba todo); cabecera "Mostrando 200 de N". **Verificado con el disco real:** los ejemplos de la sección 7 (100219, Curación2, CURACION2, Proyecto IA, nombre completo) devuelven 100219; "E&N" → 100222 y 100226. Rendimiento: 20.000 tickets en 11–18 ms (peor caso ~130 ms, a revisar en la Fase 16). 142 pruebas (22 nuevas). |
 | 12 | Resultados | [x] | 2026-10-01 | Validada por el usuario (commit `304d5b4`). Conteo real de elementos bajo demanda solo para tarjetas construidas (visibles), con caché por sesión y "No disponible" si la carpeta no se puede leer. Eliminados `datos_demo.dart`, el botón debug y todo lo TEMPORAL (ya no queda ninguno en `lib/`). **Verificado con el disco real:** buscar "1002" muestra los 3 tickets con 1, 2 y 0 elementos y la ruta `D:\2024\Mayo\…`. 150 pruebas (8 nuevas). |
 | 13 | Abrir carpeta | [x] | 2026-10-01 | Validada por el usuario (commit `d4ef80f`). `AccionesSistema.abrirCarpeta` (existencia previa, ticket movido vs. disco desconectado, `explorer.exe` desacoplado con comillas forzadas, rutas > 259 ⇒ carpeta más cercana); botón ABRIR CARPETA conectado; mensajes breves en SnackBar. **Comprobado con el Explorador real:** comas (sin comillas abría "Documentos"), tildes y `&`, ruta de 361 caracteres; y un ticket real del disco. 162 pruebas (12 nuevas). |
-| 14 | Copiar ruta | [x] | 2026-10-01 | Pendiente de validación del usuario. `copiarAlPortapapeles` + `BuscadorController.copiarRuta`; botón COPIAR RUTA conectado con confirmación "Ruta copiada: …" y mensaje de error claro. Prueba con el canal real de Flutter interceptado: envía la ruta exacta (tildes y `&`). Ya no queda ningún botón sin lógica. 165 pruebas (3 nuevas). |
-| 15 | Filtros | [ ] | | |
+| 14 | Copiar ruta | [x] | 2026-10-01 | Validada por el usuario (commit `ce1598d`). `copiarAlPortapapeles` + `BuscadorController.copiarRuta`; botón COPIAR RUTA conectado con confirmación "Ruta copiada: …" y mensaje de error claro. Prueba con el canal real de Flutter interceptado: envía la ruta exacta (tildes y `&`). Ya no queda ningún botón sin lógica. 165 pruebas (3 nuevas). |
+| 15 | Filtros | [x] | 2026-10-01 | Pendiente de validación del usuario. Cambiar un filtro vuelve a buscar; filtro sin texto lista los tickets de ese año/mes; "sin resultados" con filtros sugiere cambiarlos; `FiltrosBusqueda.activos`; `MotorBusqueda.filtrar`. **Verificado con el disco real:** 2024 + Mayo sin texto ⇒ 3 tickets; "E&N" + 2025 ⇒ sin resultados (con filtros); "E&N" + Todos ⇒ 2. 171 pruebas (6 nuevas). |
 | 16 | Optimización | [ ] | | Medir el motor en Release; si el peor caso (todas las coincidencias) se nota, mover la búsqueda a `compute`. |
 | 17 | Pruebas | [ ] | | |
 | 18 | Build Release | [ ] | | Copiar runtime VC++ junto al .exe. |
@@ -39,7 +39,7 @@ Leyenda: `[x]` completada · `[ ]` pendiente
 - Un disco USB en reposo tarda más de 5 s en despertar (medido con el disco real: 6,1 s el primer
   recorrido); por eso los tiempos límite pasaron de 5 s / 1,5 s a 15 s / 10 s.
 - Desde la Fase 10 el pie muestra la fecha y el total reales del índice. Desde la Fase 11 la
-  búsqueda usa el motor real (§5); los filtros se aplican al buscar (su ajuste fino es la Fase 15).
+  búsqueda usa el motor real (§5); desde la Fase 15 los filtros vuelven a buscar al cambiar y, sin texto, listan los tickets del año/mes.
 - El índice de desarrollo queda en `build\windows\x64\runner\Debug\data_usuario\indice.json`.
   Para forzar una indexación desde cero basta con borrarlo (o pulsar "Actualizar índice").
 - Si la raíz cambia de letra (D: → F:), la raíz guardada en el índice ya no coincide y se

@@ -41,9 +41,11 @@ class VistaEstado extends StatelessWidget {
       cargando = true,
       esError = false;
 
-  const VistaEstado.sinResultados({super.key})
+  const VistaEstado.sinResultados({super.key, bool conFiltros = false})
     : titulo = Textos.sinResultados,
-      detalle = Textos.sinResultadosDetalle,
+      detalle = conFiltros
+          ? Textos.sinResultadosConFiltros
+          : Textos.sinResultadosDetalle,
       icono = Icons.search_off_rounded,
       cargando = false,
       esError = false;

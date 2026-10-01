@@ -45,6 +45,7 @@ class PanelFiltros extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         DropdownMenu<int>(
+          key: ValueKey('mes|${filtros.mes}'),
           width: 160,
           label: const Text(Textos.filtroMes),
           initialSelection: filtros.mes ?? _todos,

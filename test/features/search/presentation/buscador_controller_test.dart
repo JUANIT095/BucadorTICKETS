@@ -196,6 +196,52 @@ void main() {
       expect((c.estado as EstadoConResultados).tickets.single.numero, '200001');
     });
 
+    test('cambiar un filtro vuelve a buscar con la consulta actual', () async {
+      Directory(
+        p.join(raiz, '2025', 'Enero', '200001_Curación3'),
+      ).createSync(recursive: true);
+      final c = crear();
+      await c.activarRaiz(raiz);
+
+      c.buscar('curacion');
+      expect((c.estado as EstadoConResultados).tickets, hasLength(2));
+      c.cambiarFiltros(const FiltrosBusqueda(anio: 2024));
+      expect((c.estado as EstadoConResultados).tickets.single.numero, '100219');
+      c.cambiarFiltros(const FiltrosBusqueda());
+      expect((c.estado as EstadoConResultados).tickets, hasLength(2));
+    });
+
+    test(
+      'sin texto: un filtro lista sus tickets; sin filtros ⇒ inicial',
+      () async {
+        Directory(
+          p.join(raiz, '2025', 'Enero', '200001_Otro'),
+        ).createSync(recursive: true);
+        final c = crear();
+        await c.activarRaiz(raiz);
+
+        c.cambiarFiltros(const FiltrosBusqueda(anio: 2025));
+        expect(
+          (c.estado as EstadoConResultados).tickets.single.numero,
+          '200001',
+        );
+        c.cambiarFiltros(const FiltrosBusqueda());
+        expect(c.estado, isA<EstadoInicial>());
+      },
+    );
+
+    test('sin resultados con filtros activos lo indica', () async {
+      final c = crear();
+      await c.activarRaiz(raiz);
+
+      c.buscar('curacion');
+      c.cambiarFiltros(const FiltrosBusqueda(anio: 2025));
+      expect((c.estado as EstadoSinResultados).conFiltros, isTrue);
+      c.cambiarFiltros(const FiltrosBusqueda());
+      c.buscar('zzz');
+      expect((c.estado as EstadoSinResultados).conFiltros, isFalse);
+    });
+
     test('sin coincidencias ⇒ sin resultados; vacío ⇒ inicial', () async {
       final c = crear();
       await c.activarRaiz(raiz);
