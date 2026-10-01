@@ -106,3 +106,25 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+# Runtime de Visual C++ junto al .exe (Fase 18). BuscadorTickets.exe y el
+# plugin de file_selector dependen de msvcp140.dll, vcruntime140.dll y
+# vcruntime140_1.dll, que Flutter no incluye: sin ellas la carpeta no abre en
+# un PC sin el "Visual C++ Redistributable". Se copian las versiones
+# redistribuibles oficiales de Visual Studio (despliegue local permitido por
+# Microsoft). La UCRT (api-ms-win-crt-*) ya viene con Windows 10/11.
+set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+set(CMAKE_INSTALL_UCRT_LIBRARIES FALSE)
+include(InstallRequiredSystemLibraries)
+set(RUNTIME_VC_PORTABLE ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS})
+list(FILTER RUNTIME_VC_PORTABLE INCLUDE REGEX "(msvcp140|vcruntime140|vcruntime140_1)[.]dll$")
+list(LENGTH RUNTIME_VC_PORTABLE RUNTIME_VC_CANTIDAD)
+if(NOT RUNTIME_VC_CANTIDAD EQUAL 3)
+  message(WARNING "No se encontraron las 3 DLL del runtime de Visual C++ "
+    "(encontradas: ${RUNTIME_VC_PORTABLE}). La carpeta Release podría no "
+    "abrir en un PC sin el Visual C++ Redistributable.")
+endif()
+install(PROGRAMS ${RUNTIME_VC_PORTABLE}
+  DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  CONFIGURATIONS Profile;Release
+  COMPONENT Runtime)

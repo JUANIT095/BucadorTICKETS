@@ -249,8 +249,17 @@ verificando, sin configurar, activa, no encontrada, inválida y propuesta de car
 - `file_selector_windows_plugin.dll`
 - `data\` → `icudtl.dat`, `app.so`, `flutter_assets\`
 - Runtime VC++: `msvcp140.dll`, `vcruntime140.dll`, `vcruntime140_1.dll` (Flutter **no** los
-  incluye; se copian junto al .exe — despliegue app-local — automatizable en el `install` de CMake
-  en las fases 18–20).
+  incluye; se copian junto al .exe — despliegue app-local).
+- `native_assets.json` (lo genera Flutter; vacío en este proyecto).
+
+**Build Release (Fase 18):** `flutter build windows --release`. El paso `install` de
+`windows/CMakeLists.txt` copia automáticamente las 3 DLL del runtime VC++ desde el redistribuible
+oficial de Visual Studio (`InstallRequiredSystemLibraries`, filtradas a esas 3, solo en Release y
+Profile; aviso en la compilación si faltan). Comprobado con `dumpbin /dependents`: el .exe y el
+plugin necesitan esas 3; `flutter_windows.dll` solo usa DLL del sistema; la UCRT
+(`api-ms-win-crt-*`) viene con Windows 10/11. Al ejecutar, el proceso carga las copias locales
+(verificado). Tamaño de la carpeta: **28,8 MB**. Metadatos del .exe: "Buscador de Tickets",
+versión 1.0.0+1 (de `pubspec.yaml`).
 
 **Pendiente Fase 3:** `BINARY_NAME` en `windows/CMakeLists.txt` es hoy `"buscador_tickets"` →
 cambiar a `BuscadorTickets`.
@@ -335,3 +344,4 @@ cambiar a `BuscadorTickets`.
 | 2026-10-01 | 15 | Filtros: cambiar Año o Mes vuelve a buscar con la consulta actual (el controlador recuerda el último texto); **sin texto y con algún filtro** se listan todos los tickets de ese año/mes (`MotorBusqueda.filtrar`, orden de desempate, límite 200); sin texto ni filtros ⇒ estado inicial. "Sin resultados" con filtros activos sugiere cambiarlos. El menú de Mes tiene clave como el de Año para reflejar siempre el filtro vigente. El filtro Mes mantiene los 12 meses fijos (sección 9). |
 | 2026-10-01 | 16 | Optimización medida con 20.000 tickets: normalizador en un solo recorrido por unidades de código (716 → 126 ms al construir; carga del índice 567 → 256 ms); clave numérica de orden precalculada en `Ticket.numeroOrden` (búsqueda que coincide con todos 215 → 19,5 ms; normales 9–11 ms), por lo que la búsqueda sigue en el hilo principal sin `compute`; recorrido de 19.800 tickets en 628 ms, sin indicador de progreso (no hace falta). Fondo animado a ~10 cuadros/s con temporizador y en pausa sin foco (CPU en reposo con foco 33–50 % → 3–9 % de un núcleo; sin foco 0–1 %). Al arrancar no se detiene la animación antes del primer cuadro (si no, la ventana no se mostraba y la app se cerraba). |
 | 2026-10-01 | 17 | Pruebas: cobertura 93,1 % → 95,5 %; pruebas nuevas para avisos de configuración (respaldo, memoria, no guardada), fallos de almacenamiento, vistas de carpeta inválida y de varias unidades, filtro Mes desde el menú, unidades reales del sistema y una prueba de **punta a punta** (`test/flujo_completo_test.dart`). Nuevo `docs/PRUEBAS.md` (cómo ejecutar, inventario, cobertura, matriz casos límite §9 → prueba, lista de verificación manual). |
+| 2026-10-01 | 18 | Build Release: copia automática del runtime VC++ (3 DLL) en el `install` de CMake desde el redistribuible oficial de Visual Studio; metadatos del .exe sin restos de la plantilla (`com.example`). Carpeta Release de 28,8 MB verificada: arranca en primer uso y carga las DLL locales. |
