@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 
 import '../../../core/constants/textos.dart';
 import '../../../models/carpeta_anio.dart';
+import '../../../models/carpeta_mes.dart';
 import '../../../models/ticket.dart';
 import '../data/detector_anios.dart';
+import '../data/detector_meses.dart';
 import '../domain/filtros_busqueda.dart';
 
 sealed class EstadoBusqueda {
@@ -45,18 +47,23 @@ class BuscadorController extends ChangeNotifier {
     DateTime? fechaIndice,
     List<Ticket> tickets = const [],
     DetectorAnios detectorAnios = const DetectorAnios(),
+    DetectorMeses detectorMeses = const DetectorMeses(),
   }) : _fechaIndice = fechaIndice,
        _tickets = tickets,
-       _detectorAnios = detectorAnios;
+       _detectorAnios = detectorAnios,
+       _detectorMeses = detectorMeses;
 
   final DateTime? _fechaIndice;
   final List<Ticket> _tickets;
   final DetectorAnios _detectorAnios;
+  final DetectorMeses _detectorMeses;
   final List<String> _avisos = [];
   EstadoBusqueda _estado = const EstadoInicial();
   FiltrosBusqueda _filtros = const FiltrosBusqueda();
   List<CarpetaAnio> _carpetasAnio = const [];
   List<int> _anios = const [];
+  List<CarpetaMes> _carpetasMes = const [];
+  List<TicketSinMes> _ticketsSinMes = const [];
 
   /// Avisos generados por la última detección; se reemplazan en la siguiente.
   final Set<String> _avisosDeteccion = {};
@@ -74,45 +81,37 @@ class BuscadorController extends ChangeNotifier {
   /// Años detectados en la raíz, del más reciente al más antiguo.
   List<int> get anios => _anios;
 
-  /// Detecta las carpetas de año de [raiz]; null = no hay raíz activa.
-  Future<void> detectarAnios(String? raiz) async {
+  /// Meses reconocidos y carpetas no reconocidas como mes (`mes == null`).
+  List<CarpetaMes> get carpetasMes => _carpetasMes;
+
+  /// Carpetas con aspecto de ticket guardadas directamente en el año.
+  List<TicketSinMes> get ticketsSinMes => _ticketsSinMes;
+
+  /// Detecta años y meses de [raiz]; null = no hay raíz activa.
+  Future<void> detectarEstructura(String? raiz) async {
     final generacion = ++_generacionDeteccion;
     _avisos.removeWhere(_avisosDeteccion.contains);
     _avisosDeteccion.clear();
 
     if (raiz == null) {
       _aplicarAnios(const []);
+      _carpetasMes = const [];
+      _ticketsSinMes = const [];
       notifyListeners();
       return;
     }
 
     _estado = const EstadoIndexando();
     notifyListeners();
-    final resultado = await _detectorAnios.detectar(raiz);
+    final anios = await _detectorAnios.detectar(raiz);
     if (generacion != _generacionDeteccion) return;
 
-    switch (resultado) {
+    var erroresLectura = 0;
+    switch (anios) {
       case DeteccionAnios():
-        _aplicarAnios(resultado.carpetas);
-        if (resultado.carpetas.isEmpty) _avisoDeteccion(Textos.sinAnios);
-        for (final MapEntry(key: anio, value: nombres)
-            in resultado.duplicados.entries) {
-          _avisoDeteccion(Textos.avisoAnioDuplicado(anio, nombres));
-        }
-        if (resultado.ignoradas.isNotEmpty) {
-          _avisoDeteccion(
-            Textos.avisoCarpetasIgnoradas([
-              for (final c in resultado.ignoradas)
-                Textos.carpetaIgnorada(
-                  c.nombre,
-                  c.motivo == MotivoIgnorada.anioFueraDeRango,
-                ),
-            ]),
-          );
-        }
-        if (resultado.erroresLectura > 0) {
-          _avisoDeteccion(Textos.avisoErroresLectura(resultado.erroresLectura));
-        }
+        _aplicarAnios(anios.carpetas);
+        erroresLectura += anios.erroresLectura;
+        _avisosDeAnios(anios);
       case DeteccionFallida(:final motivo):
         _aplicarAnios(const []);
         _avisoDeteccion(
@@ -123,8 +122,63 @@ class BuscadorController extends ChangeNotifier {
           }),
         );
     }
+
+    final meses = await _detectorMeses.detectar(_carpetasAnio);
+    if (generacion != _generacionDeteccion) return;
+    _carpetasMes = meses.carpetas;
+    _ticketsSinMes = meses.ticketsSinMes;
+    erroresLectura += meses.erroresLectura;
+    _avisosDeMeses(meses);
+
+    if (erroresLectura > 0) {
+      _avisoDeteccion(Textos.avisoErroresLectura(erroresLectura));
+    }
     _estado = const EstadoInicial();
     notifyListeners();
+  }
+
+  void _avisosDeAnios(DeteccionAnios anios) {
+    if (anios.carpetas.isEmpty) _avisoDeteccion(Textos.sinAnios);
+    for (final MapEntry(key: anio, value: nombres)
+        in anios.duplicados.entries) {
+      _avisoDeteccion(Textos.avisoAnioDuplicado(anio, nombres));
+    }
+    if (anios.ignoradas.isNotEmpty) {
+      _avisoDeteccion(
+        Textos.avisoCarpetasIgnoradas([
+          for (final c in anios.ignoradas)
+            Textos.carpetaIgnorada(
+              c.nombre,
+              c.motivo == MotivoIgnorada.anioFueraDeRango,
+            ),
+        ]),
+      );
+    }
+  }
+
+  void _avisosDeMeses(DeteccionMeses meses) {
+    for (final MapEntry(key: (anio, mes), value: nombres)
+        in meses.duplicados.entries) {
+      _avisoDeteccion(Textos.avisoMesDuplicado(anio, mes, nombres));
+    }
+    final noReconocidas = meses.noReconocidas;
+    if (noReconocidas.isNotEmpty) {
+      _avisoDeteccion(
+        Textos.avisoMesesNoReconocidos([
+          for (final c in noReconocidas) '${c.anio}/${c.nombre}',
+        ]),
+      );
+    }
+    if (meses.ticketsSinMes.isNotEmpty) {
+      _avisoDeteccion(Textos.avisoTicketsSinMes(meses.ticketsSinMes.length));
+    }
+    if (meses.ilegibles.isNotEmpty) {
+      _avisoDeteccion(
+        Textos.avisoAniosIlegibles([
+          for (final i in meses.ilegibles) i.carpeta.nombre,
+        ]),
+      );
+    }
   }
 
   void _aplicarAnios(List<CarpetaAnio> carpetas) {

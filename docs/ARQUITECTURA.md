@@ -44,11 +44,13 @@ lib/
 │   ├── ticket.dart                  Modelo Ticket (+ toJson/fromJson)
 │   ├── indice.dart                  Metadatos del índice + lista de tickets
 │   ├── configuracion.dart           Carpeta raíz elegida
-│   └── carpeta_anio.dart            Carpeta de año: año, nombre y ruta (Fase 6)
+│   ├── carpeta_anio.dart            Carpeta de año: año, nombre y ruta (Fase 6)
+│   └── carpeta_mes.dart             Carpeta de mes (o no reconocida): año, mes?, nombre, ruta (Fase 7)
 ├── features/search/
 │   ├── data/
 │   │   ├── servicio_raiz.dart       Validación y resolución de la carpeta raíz (Fase 5)
 │   │   ├── detector_anios.dart      Carpetas de año en el primer nivel de la raíz (Fase 6)
+│   │   ├── detector_meses.dart      Carpetas de mes dentro de cada año (Fase 7)
 │   │   ├── parser_carpetas.dart     Reconoce carpetas de año, mes y ticket (funciones puras)
 │   │   ├── escaner_directorios.dart Recorrido del disco (función ejecutada en Isolate)
 │   │   └── repositorio_indice.dart  Cargar/guardar/regenerar el índice
@@ -273,6 +275,10 @@ cambiar a `BuscadorTickets`.
 | Se elige una carpeta inválida teniendo ya una raíz activa | Se mantiene la raíz actual y el motivo se muestra como aviso. |
 | La ruta guardada es válida en varias unidades | No se elige automáticamente; se pide al usuario que elija. |
 | Variantes de mes (tildes, mayúsculas, `Setiembre`, `Ene`/`Sep`/`Set`, `05`, `5`, `05 Mayo`, `05-Mayo`, `Mayo 2024`) | Normalizar → buscar nombre/abreviatura de mes → si no, número suelto 1–12. Filtro por número de mes; tarjeta muestra nombre original. |
+| Número suelto dentro de otro texto (`Semana 1`) | **No** se toma como mes: el número solo cuenta si el nombre es solo el número (`05`, `05-2024`, `2024_05`). Evita falsos meses. |
+| Nombre y número que no coinciden (`06 Mayo`) | Manda el nombre (mayo). Varios meses distintos en el nombre (`Enero-Febrero`) ⇒ no reconocida. |
+| Dos carpetas del mismo mes en un año (`Mayo` y `05 Mayo`) | Se conservan **todas** y se avisa del duplicado. |
+| Una carpeta de año ilegible o que no responde | Se registra y se avisa; los demás años se procesan igual. |
 | Carpeta dentro del año que no es mes | 1) ¿Mes? → mes. 2) ¿Parece ticket (≥4 dígitos + separador)? → ticket directo del año, `mes = null`. 3) Si no → "mes desconocido", se indexan sus tickets con el nombre original. Visibles con Mes = "Todos". |
 | Tildes / mayúsculas | Normalización de la sección 5 (incluye NFD). |
 | Carpetas vacías (año, mes, ticket) | No es error; ticket vacío = "0 elementos". |
@@ -300,3 +306,4 @@ cambiar a `BuscadorTickets`.
 | 2026-09-30 | 4 | Tema único negro/blanco/rojo con vidrio difuminado y animaciones; nuevos `widgets/fondo_animado.dart` y `widgets/panel_vidrio.dart`. |
 | 2026-09-30 | 5 | Detección por cambio de letra de la ruta guardada (C:–Z:), ambigüedad → elige el usuario; propuesta del padre con confirmación; regla de escritura precisada; `RaizController` separado, `servicio_raiz.dart` y `vista_raiz.dart`. La configuración la manejan `AlmacenamientoPortable` + `Configuracion` (`repositorio_indice.dart` queda para el índice). |
 | 2026-09-30 | 6 | `DetectorAnios` + `CarpetaAnio`; reglas de variantes, duplicados y carpetas ignoradas (§9). Los años los guarda `BuscadorController` y la detección se lanza desde `app.dart` al cambiar la raíz activa. |
+| 2026-09-30 | 7 | `DetectorMeses` + `CarpetaMes` + `core/utils/meses.dart`; reglas de §9 (número solo estricto, duplicados, año ilegible). Las carpetas con aspecto de ticket dentro del año se registran como `TicketSinMes` para la Fase 8. `BuscadorController.detectarEstructura` detecta años y luego meses. El filtro Mes mantiene los 12 meses fijos (sección 9 del contexto). |

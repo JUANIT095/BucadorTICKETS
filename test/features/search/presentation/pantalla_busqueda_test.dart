@@ -172,7 +172,7 @@ void main() {
     testWidgets('muestra "Todos" y los años detectados', (tester) async {
       entorno.raiz('DISCO', metada: ['METADA 2025', 'METADA 2027']);
       await montar(tester);
-      await tester.runAsync(() => controller.detectarAnios(rutaRaiz));
+      await tester.runAsync(() => controller.detectarEstructura(rutaRaiz));
       await tester.pump();
 
       expect(controller.anios, [2027, 2025, 2024]);
@@ -190,13 +190,13 @@ void main() {
     ) async {
       entorno.raiz('DISCO', metada: ['METADA 2025']);
       await montar(tester);
-      await tester.runAsync(() => controller.detectarAnios(rutaRaiz));
+      await tester.runAsync(() => controller.detectarEstructura(rutaRaiz));
       controller.cambiarFiltros(const FiltrosBusqueda(anio: 2025));
       await tester.pump();
       expect(textoFiltroAnio(tester), '2025');
 
       Directory('$rutaRaiz\\METADA 2025').deleteSync();
-      await tester.runAsync(() => controller.detectarAnios(rutaRaiz));
+      await tester.runAsync(() => controller.detectarEstructura(rutaRaiz));
       await tester.pump();
 
       expect(controller.filtros.anio, isNull);
@@ -207,7 +207,7 @@ void main() {
     testWidgets('raíz sin años válidos ⇒ aviso claro', (tester) async {
       await montar(tester);
       Directory('$rutaRaiz\\METADA 2024').renameSync('$rutaRaiz\\METADA 1999');
-      await tester.runAsync(() => controller.detectarAnios(rutaRaiz));
+      await tester.runAsync(() => controller.detectarEstructura(rutaRaiz));
       await tester.pump();
 
       expect(find.text(Textos.sinAnios), findsOneWidget);

@@ -95,11 +95,12 @@ class DetectorAnios {
       }
       final entradas = directorio
           .list(followLinks: false)
-          // Un error en una entrada no corta el listado del resto.
-          .handleError(
-            (Object _) => errores++,
-            test: (e) => e is FileSystemException,
-          );
+          // Un error en una entrada no corta el listado del resto; uno de la
+          // propia raíz (p. ej. sin permisos) sí.
+          .handleError((Object error) {
+            if (errorDeLaCarpeta(error, raiz)) throw error;
+            errores++;
+          }, test: (e) => e is FileSystemException);
       await for (final entrada in entradas) {
         if (entrada is! Directory) continue;
         final nombre = p.basename(entrada.path);

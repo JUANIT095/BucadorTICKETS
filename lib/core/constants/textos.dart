@@ -120,10 +120,33 @@ abstract final class Textos {
       'Se ignoraron carpetas con nombre parecido a METADA: '
       '${descripciones.join(', ')}.';
   static String avisoErroresLectura(int n) => n == 1
-      ? 'Una carpeta de la raíz no se pudo leer.'
-      : '$n carpetas de la raíz no se pudieron leer.';
+      ? 'Una carpeta no se pudo leer.'
+      : '$n carpetas no se pudieron leer.';
   static String avisoDeteccionFallida(String motivo) =>
       'No se pudieron detectar los años. $motivo';
+
+  // Detección de meses
+  static String avisoMesDuplicado(int anio, int mes, List<String> carpetas) =>
+      '${meses[mes - 1]} de $anio aparece en varias carpetas '
+      '(${_lista(carpetas.map((c) => '«$c»'))}); se usarán todas.';
+  static String avisoMesesNoReconocidos(List<String> carpetas) =>
+      'Carpetas no reconocidas como mes (sus tickets se incluirán igual): '
+      '${_lista(carpetas.map((c) => '«$c»'))}.';
+  static String avisoTicketsSinMes(int n) => n == 1
+      ? 'Una carpeta parece un ticket guardado directamente en la carpeta del '
+            'año; se incluirá como ticket sin mes.'
+      : '$n carpetas parecen tickets guardados directamente en la carpeta '
+            'del año; se incluirán como tickets sin mes.';
+  static String avisoAniosIlegibles(List<String> carpetas) =>
+      'No se pudieron leer los meses de '
+      '${_lista(carpetas.map((c) => '«$c»'))}.';
+
+  /// Une hasta 5 elementos y resume el resto: "a, b, c, d, e y 3 más".
+  static String _lista(Iterable<String> elementos) {
+    final todos = elementos.toList();
+    if (todos.length <= 5) return todos.join(', ');
+    return '${todos.take(5).join(', ')} y ${todos.length - 5} más';
+  }
 
   // Pie
   static const indiceNoGenerado = 'Índice aún no generado';

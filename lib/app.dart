@@ -35,12 +35,12 @@ class _BuscadorTicketsAppState extends State<BuscadorTicketsApp> {
   }
 
   /// Cada vez que cambia la raíz activa (al arrancar o al elegir otra), se
-  /// vuelven a detectar los años.
+  /// vuelven a detectar los años y los meses.
   void _alCambiarRaiz() {
     final ruta = widget.raiz.rutaActiva;
     if (ruta == _raizDetectada) return;
     _raizDetectada = ruta;
-    _controller.detectarAnios(ruta);
+    _controller.detectarEstructura(ruta);
   }
 
   @override
