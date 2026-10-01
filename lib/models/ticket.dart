@@ -2,6 +2,8 @@ import 'package:path/path.dart' as p;
 
 import '../core/utils/normalizador.dart';
 
+final _cerosIniciales = RegExp(r'^0+(?=\d)');
+
 /// Carpeta de ticket: la unidad de búsqueda.
 ///
 /// Los campos `...Norm` y [palabras] se calculan al construir el ticket y no
@@ -17,6 +19,7 @@ class Ticket {
     required this.carpetaMes,
     required this.rutaRelativa,
   }) : numeroNorm = numero ?? '',
+       numeroOrden = numero?.replaceFirst(_cerosIniciales, ''),
        nombreNorm = normalizar(nombre),
        carpetaNorm = normalizar(nombreCarpeta),
        palabras = palabrasNormalizadas(nombreCarpeta);
@@ -46,6 +49,10 @@ class Ticket {
   final String numeroNorm;
   final String nombreNorm;
   final String carpetaNorm;
+
+  /// Número sin ceros a la izquierda, para ordenar numéricamente sin
+  /// convertir a entero (los números pueden ser largos); null sin número.
+  final String? numeroOrden;
 
   /// Palabras normalizadas del nombre completo de la carpeta.
   final List<String> palabras;

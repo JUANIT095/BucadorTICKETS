@@ -105,18 +105,17 @@ class MotorBusqueda {
     if (ta.anio != tb.anio) return tb.anio.compareTo(ta.anio);
     final porMes = (tb.mes ?? 0).compareTo(ta.mes ?? 0);
     if (porMes != 0) return porMes;
-    final porNumero = _compararNumeros(ta.numero, tb.numero);
+    final porNumero = _compararNumeros(ta.numeroOrden, tb.numeroOrden);
     if (porNumero != 0) return porNumero;
     return ta.carpetaNorm.compareTo(tb.carpetaNorm);
   }
 
   /// Orden numérico sin convertir a entero (los números pueden ser largos o
-  /// tener ceros a la izquierda): primero por longitud sin ceros iniciales.
+  /// tener ceros a la izquierda): recibe `Ticket.numeroOrden` (ya sin ceros
+  /// iniciales, calculado una vez) y compara por longitud y luego por texto.
   static int _compararNumeros(String? a, String? b) {
     if (a == null || b == null) return a == b ? 0 : (a == null ? 1 : -1);
-    final sa = a.replaceFirst(RegExp(r'^0+(?=\d)'), '');
-    final sb = b.replaceFirst(RegExp(r'^0+(?=\d)'), '');
-    if (sa.length != sb.length) return sa.length.compareTo(sb.length);
-    return sa.compareTo(sb);
+    if (a.length != b.length) return a.length.compareTo(b.length);
+    return a.compareTo(b);
   }
 }
