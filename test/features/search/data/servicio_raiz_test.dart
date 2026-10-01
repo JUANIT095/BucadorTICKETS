@@ -182,6 +182,14 @@ void main() {
     });
   });
 
+  test('unidadesDelSistema: lista las unidades presentes (incluye C:)', () async {
+    // Solo comprueba qué letras existen; no lee el contenido de las unidades.
+    final unidades = await ServicioRaiz.unidadesDelSistema();
+    expect(unidades, contains(r'C:\'));
+    expect(unidades, isNot(contains(r'A:\')));
+    expect(unidades, everyElement(matches(RegExp(r'^[C-Z]:\\$'))));
+  });
+
   group('configuracionPara', () {
     test('misma unidad que el .exe ⇒ guarda también la relativa', () {
       final exe = entorno.exe(p.join('USB', 'App'));

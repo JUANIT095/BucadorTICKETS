@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:buscador_tickets/core/constants/app_constants.dart';
 import 'package:buscador_tickets/core/constants/textos.dart';
 import 'package:buscador_tickets/core/services/almacenamiento_portable.dart';
@@ -40,6 +42,48 @@ void main() {
   Future<Configuracion?> configGuardada() async => Configuracion.desdeJson(
     await almacenamiento.leerJson(AppConstants.archivoConfig),
   );
+
+  test('configuración en el respaldo o en memoria ⇒ aviso visible', () async {
+    File(entorno.ruta('bloqueo')).writeAsStringSync('');
+    final exeBloqueado = p.join(entorno.ruta('bloqueo'), 'BuscadorTickets.exe');
+
+    final respaldo = await AlmacenamientoPortable.iniciar(
+      rutaExe: exeBloqueado,
+      localAppData: entorno.ruta('local'),
+    );
+    final conRespaldo = RaizController(
+      servicio: ServicioRaiz(rutaExe: exeBloqueado, unidades: () async => []),
+      almacenamiento: respaldo,
+      seleccionarCarpeta: () async => null,
+    );
+    await conRespaldo.iniciar();
+    expect(conRespaldo.avisos, [Textos.avisoRespaldo(respaldo.carpeta!)]);
+
+    final memoria = await AlmacenamientoPortable.iniciar(
+      rutaExe: exeBloqueado,
+      localAppData: null,
+    );
+    final enMemoria = RaizController(
+      servicio: ServicioRaiz(rutaExe: exeBloqueado, unidades: () async => []),
+      almacenamiento: memoria,
+      seleccionarCarpeta: () async => null,
+    );
+    await enMemoria.iniciar();
+    expect(enMemoria.avisos, [Textos.avisoSoloMemoria]);
+  });
+
+  test('si no se puede guardar la configuración ⇒ aviso', () async {
+    final raiz = crear();
+    await raiz.iniciar();
+    final carpeta = almacenamiento.carpeta!;
+    Directory(carpeta).deleteSync(recursive: true);
+    File(carpeta).writeAsStringSync('');
+
+    seleccion = entorno.raiz('DISCO');
+    await raiz.elegirCarpeta();
+    expect(raiz.rutaActiva, seleccion); // la raíz se usa igual en la sesión
+    expect(raiz.avisos, [Textos.avisoConfigNoGuardada]);
+  });
 
   test('sin configuración ⇒ primer uso', () async {
     final raiz = crear();

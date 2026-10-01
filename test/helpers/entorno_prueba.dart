@@ -26,6 +26,7 @@ Future<RaizController> crearRaizController(
   EntornoPrueba entorno, {
   String? raizGuardada,
   Future<String?> Function()? seleccionarCarpeta,
+  List<String> unidades = const [],
 }) async {
   final exe = entorno.exe();
   final almacenamiento = await AlmacenamientoPortable.iniciar(
@@ -39,7 +40,7 @@ Future<RaizController> crearRaizController(
     );
   }
   final raiz = RaizController(
-    servicio: ServicioRaiz(rutaExe: exe, unidades: () async => const []),
+    servicio: ServicioRaiz(rutaExe: exe, unidades: () async => unidades),
     almacenamiento: almacenamiento,
     seleccionarCarpeta: seleccionarCarpeta ?? () async => null,
   );

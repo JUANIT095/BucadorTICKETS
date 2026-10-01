@@ -108,6 +108,26 @@ void main() {
     expect(almacenamiento.ubicacion, UbicacionDatos.principal);
   });
 
+  test('lectura de un "archivo" que en realidad es carpeta ⇒ null', () async {
+    final almacenamiento = await AlmacenamientoPortable.iniciar(
+      rutaExe: entorno.exe(),
+      localAppData: null,
+    );
+    Directory(p.join(almacenamiento.carpeta!, 'raro.json')).createSync();
+    expect(await almacenamiento.leerTexto('raro.json'), isNull);
+  });
+
+  test('si la carpeta de datos desaparece, guardar devuelve false', () async {
+    final almacenamiento = await AlmacenamientoPortable.iniciar(
+      rutaExe: entorno.exe(),
+      localAppData: null,
+    );
+    final carpeta = almacenamiento.carpeta!;
+    Directory(carpeta).deleteSync(recursive: true);
+    File(carpeta).writeAsStringSync(''); // un archivo ocupa su lugar
+    expect(await almacenamiento.escribirTexto('x.json', '{}'), isFalse);
+  });
+
   test('sin ubicación escribible trabaja en memoria', () async {
     File(entorno.ruta('bloqueo')).writeAsStringSync('');
     final almacenamiento = await AlmacenamientoPortable.iniciar(

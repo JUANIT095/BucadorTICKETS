@@ -416,6 +416,20 @@ void main() {
       expect(find.text('200001_Curación3'), findsOneWidget);
     });
 
+    testWidgets('elegir un mes en el menú actualiza el filtro', (tester) async {
+      await montar(tester);
+      await tester.tap(find.byType(DropdownMenu<int>).last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(
+        find.widgetWithText(MenuItemButton, 'Mayo').hitTestable().first,
+      );
+      await tester.pump();
+
+      expect(controller.filtros.mes, 5);
+      expect(controller.filtros.anio, isNull);
+    });
+
     testWidgets('sin resultados con filtros sugiere cambiarlos', (
       tester,
     ) async {
@@ -489,6 +503,66 @@ void main() {
       await tester.testTextInput.receiveAction(TextInputAction.search);
       await tester.pump();
       expect(find.text('100219_Curación2 ABC'), findsOneWidget);
+    });
+  });
+
+  group('Carpeta raíz (vistas)', () {
+    Future<void> montarCon(WidgetTester tester, RaizController r) async {
+      tester.view.physicalSize = const Size(784, 560);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      raiz = r;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.oscuro,
+          home: PantallaBusqueda(controller: controller, raiz: raiz),
+        ),
+      );
+    }
+
+    testWidgets('carpeta sin años (primer uso) ⇒ vista de carpeta inválida', (
+      tester,
+    ) async {
+      final vacia = entorno.raiz('VACIA', metada: []);
+      final r = (await tester.runAsync(
+        () =>
+            crearRaizController(entorno, seleccionarCarpeta: () async => vacia),
+      ))!;
+      await montarCon(tester, r);
+      await tester.runAsync(r.elegirCarpeta);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.text(Textos.invalidaTitulo), findsOneWidget);
+      expect(find.text(Textos.motivoSinAnios), findsOneWidget);
+      expect(find.text(vacia), findsOneWidget);
+    });
+
+    testWidgets('la carpeta aparece en varias unidades ⇒ pide elegir', (
+      tester,
+    ) async {
+      final unidades = [entorno.ruta('unidadE'), entorno.ruta('unidadF')];
+      entorno.raizConMes('unidadE\\DISCO');
+      entorno.raizConMes('unidadF\\DISCO');
+      final r = (await tester.runAsync(
+        () => crearRaizController(
+          entorno,
+          raizGuardada: r'Q:\DISCO',
+          unidades: unidades,
+        ),
+      ))!;
+      await montarCon(tester, r);
+
+      expect(find.text(Textos.noEncontradaTitulo), findsOneWidget);
+      expect(
+        find.text(
+          Textos.noEncontradaVarias([
+            '${unidades[0]}\\DISCO',
+            '${unidades[1]}\\DISCO',
+          ]),
+        ),
+        findsOneWidget,
+      );
     });
   });
 
